@@ -9,18 +9,193 @@ Olivier Fourmaux (olivier.fourmaux@sorbonne-universite.fr)
 
 ** Introduction to dump analysis, by hand
 
-[inclure la feuille volante moche, reprendre toute l'analyse au propre]
+Même si assez peu d'analyses de traces se font à la main, s'entraîner à interpréter des traces peut être utile.
+
+On reproduit ici une trace, qu'on interprétera. On trouvera dans l'énoncé du lab un patron pour aider l'interprétation.
+
+| 0000 | 00 50 7f 05 7d 40 00 10 a4 86 2d 0b 08 00 45 00 | .P..}@.. ..-...E. |
+| 0010 | 02 19 17 98 40 00 40 06 6c 14 0a 21 b6 b2 c0 37 | ....@.@. l..!...7 |
+| 0020 | 34 28 84 b3 00 50 b6 94 b0 b8 24 67 89 e9 80 18 | 4(...P.. ..$g.... |
+| 0030 | 16 d0 60 e4 00 00 01 01 08 0a 00 6f a7 32 00 00 | ..‘..... ...o.2.. |
+| 0040 | 00 00 47 45 54 20 2f 20 48 54 54 50 2f 31 2e 31 | ..GET / HTTP/1.1  |
+| 0050 | 0d 0a 48 6f 73 74 3a 20 77 77 77 2e 78 69 72 63 | ..Host: www.xirc  |
+| 0060 | 6f 6d 2e 63 6f 6d 0d 0a 55 73 65 72 2d 41 67 65 | om.com.. User-Age |
+| 0070 | 6e 74 3a 20 4d 6f 7a 69 6c 6c 61 2f 35 2e 30 20 | nt: Mozi lla/5.0  |
+
+Cette forme de trame est assez fréquente.
+
+La colonne centrale, la plus importante, représente les données elles-mêmes.
+
+Chaque groupe de deux caractères représente un octet, en écriture hexadécimale. Mieux, chaque caractère représente (et peut être immédiatement traduit vers) un demi-octet :
+
+#+BEGIN_EXAMPLE
+50 :
+0101 0000
+7f :
+0111 1111
+#+END_EXAMPLE
+
+En effet, un chiffre en hexadécimal peut coder 16 chiffres, de même que 4 bits peuvent coder 16 chiffres.
+
+La traduction de l'hexadécimal en binaire est donc triviale, c'est pour cela qu'on la verra souvent utilisée pour représenter le binaire.
+
+Dans le cas où l'octet représente un caractère, la traduction de l'hexadécimal vers le caractère ASCII de la table réduite est directement fournie, pas besoin d'exprimer en binaire ou en décimal d'abord.
+
+D'ailleurs, c'est ce que la colonne de droite représente : l'interprétation ASCII réduite (ce qui explique les points : si on considérait l'ASCII étendu, on pourrait interpréter presque tous les octets) de l'octet correspondant.
+Attention toutefois : ce n'est pas parce que l'octet se trouve correspondre à une entrée de la table ASCII réduite qu'il a été pensé par l'envoyeur comme un caractère. Il pourrait être à interpréter tel quel, comme de l'hexadécimal (adresse MAC), comme du décimal (adresse IPv4), comme du binaire. La correspondance avec un caractère ASCII valable ne pourrait être que fortuite.
+
+*** Aparté : ASCII, réduit et étendu
+
+Si on part du principe qu'un caractère est codé sur un octet, on peut écrire 256 caractères. La table des 256 caractères codés en ASCII est connue (elle n'est même pas remplie). Il existe en fait deux tables ASCII : la réduite et l'étendue.
+
+La table ASCII réduite représente en fait les 128 premiers chiffres écrivables sur 8 bits (tous les chiffres avec le bit du poids fort à 0).
+
+Le bit du poids fort à 1 permet soit de rajouter 128 chiffres (ASCII étendu) soit de coder le fait qu'on se permet d'écrire un caractère sur plus d'un octet (les différentes variantes d'UTF).
+
+Ici, les protocoles se servent en général de la table ASCII réduite.
+
+*** Retour à la trame
+
+On a dans la colonne de gauche l'index du premier octet de la ligne correspondante, écrit en hexadécimal. On a bien 16 octets par ligne.
+
+On se propose d'analyser la trame du début à la fin :
+
+| 0000 | 00 50 7f 05 7d 40                   | Adresse MAC de destination                               | Ethernet |
+| 0006 | 00 10 a4 86 2d 0b                   | Adresse MAC source                                       | Ethernet |
+| 000c | 08 00                               | Type (ici DoD Internet, soit IPv4)                       | Ethernet |
+|------+-------------------------------------+----------------------------------------------------------+----------|
+| 000e | 4                                   | Version du protocole IP                                  | IPv4     |
+| 000e | 5                                   | IP Header Length (en mots de 32 bits) : 20 octets        | IPv4     |
+| 000f | 00                                  | Type of service (e.g. 0)                                 | IPv4     |
+| 0010 | 02 19                               | Longueur totale en octets : ici 0x0219 = 537 octets      | IPv4     |
+| 0012 | 17 98                               | Identification du fragment 0x1798 = 6040                 | IPv4     |
+| 0014 | 40 00                               | F1 + F0 (010 0000000000000) : ne pas frag (pas de frag)  | IPv4     |
+| 0016 | 40                                  | Time To live : 0x40 = 64                                 | IPv4     |
+| 0017 | 06                                  | Protocole : 0x06 signifie TCP                            | IPv4     |
+| 0018 | 6c 14                               | Somme de contrôle                                        | IPv4     |
+| 001a | 0a 21 b6 b2                         | Adresse IP source : 10.33.182.178                        | IPv4     |
+| 001e | c0 37 34 28                         | Adresse IP destination : 192.55.52.40                    | IPv4     |
+|      |                                     | [Pas d'options, on a bien nos 20 octets]                 |          |
+|------+-------------------------------------+----------------------------------------------------------+----------|
+| 0022 | 84 b3                               | Port source : 0x84b3 = 33971                             | TCP      |
+| 0024 | 00 50                               | Port destination : 0x0050 = 80 (le port HTTP canonique)  | TCP      |
+| 0026 | b6 94 b0 b8                         | Numéro de séquence                                       | TCP      |
+| 002a | 24 67 89 e9                         | Numéro d'acquittement                                    | TCP      |
+| 002e | 8                                   | TCP Header Length (en mots de 32 bits) : 32 octets       | TCP      |
+| 002e | 0                                   | Trois bits 0 réservés, plus un bit nonce (RFC 3540)      | TCP      |
+| 002f | 18                                  | Flags, codé sur 8 bits. 0x18 = 0b00011000 (ACK, PSH)     | TCP      |
+| 0030 | 16 d0                               | Taille de fenêtre. 0x16d0 = 5856 octets (-16, à creuser) | TCP      |
+| 0032 | 60 e4                               | Somme de contrôle                                        | TCP      |
+| 0034 | 00 00                               | Pointeur d'urgence                                       | TCP      |
+| 0036 | 01 01 08 0a 00 6f a7 32 00 00 00 00 | Options sur 12 octets (32 de THL - 20 déjà passés)       | TCP      |
+|      |                                     | [Les données arrivent maintenant]                        |          |
+|------+-------------------------------------+----------------------------------------------------------+----------|
+|      |                                     | [La couche application arrive ici : en général du texte] |          |
+|      |                                     | [Ici, on a du HTTP]                                      |          |
+
+*** Explication de certains termes
+
+#+BEGIN_QUOTE
+The Time To Live (TTL) field (8 bits) is to prevent packets from being shuttled around indefinitely on a network. It was originally intended to be lifetime in seconds, but it has come to be implemented as “hop count”.  This means that every time a packet crosses a switch or router, the hop count is decremented by one. If it reaches zero, the packet is dropped. Typically if this happens, an ICMPv4 message (“time exceeded”) is returned to the packet sender. This mechanism is how the traceroute command works. Its primary purpose is to prevent looping (packets running around in circles).
+
+[[https://thirdinternet.com/ipv4-packet-structure/][Source]]
+#+END_QUOTE
+
+Fonctionnement de la somme de contrôle :
+
+#+BEGIN_QUOTE
+Header Checksum
+The 16-bit IPv4 header checksum field is used for error-checking of the header. When a packet arrives at a router, the router calculates the checksum of the header and compares it to the checksum field. If the values do not match, the router discards the packet. Errors in the data field must be handled by the encapsulated protocol. Both UDP and TCP have checksum fields. When a packet arrives at a router, the router decreases the TTL field. Consequently, the router must calculate a new checksum.
+
+[[https://en.wikipedia.org/wiki/IPv4#Header_Checksum][Source]]
+#+END_QUOTE
+
+#+BEGIN_QUOTE
+Sequence number (32 bits)
+
+Has a dual role:
+- If the SYN flag is set (1), then this is the initial sequence number. The sequence number of the actual first data byte and the acknowledged number in the corresponding ACK are then this sequence number plus 1.
+- If the SYN flag is clear (0), then this is the accumulated sequence number of the first data byte of this segment for the current session.
+
+[[https://en.wikipedia.org/wiki/Transmission_Control_Protocol][Source]]
+#+END_QUOTE
+
+#+BEGIN_QUOTE
+Acknowledgment number (32 bits)
+If the ACK flag is set then the value of this field is the next sequence number that the sender of the ACK is expecting. This acknowledges receipt of all prior bytes (if any). The first ACK sent by each end acknowledges the other end's initial sequence number itself, but no data.
+
+[[https://en.wikipedia.org/wiki/Transmission_Control_Protocol][Source]]
+#+END_QUOTE
+
+#+BEGIN_QUOTE
+The 8 bits of the flags section :
+
+- CWR (1 bit): Congestion Window Reduced (CWR) flag is set by the sending host to indicate that it received a TCP segment with the ECE flag set and had responded in congestion control mechanism (added to header by RFC 3168).
+- ECE (1 bit): ECN-Echo has a dual role, depending on the value of the SYN flag. It indicates:
+If the SYN flag is set (1), that the TCP peer is ECN capable.
+If the SYN flag is clear (0), that a packet with Congestion Experienced flag set (ECN=11) in the IP header was received during normal transmission (added to header by RFC 3168). This serves as an indication of network congestion (or impending congestion) to the TCP sender. 
+- URG (1 bit): indicates that the Urgent pointer field is significant
+- ACK (1 bit): indicates that the Acknowledgment field is significant. All packets after the initial SYN packet sent by the client should have this flag set.
+- PSH (1 bit): Push function. Asks to push the buffered data to the receiving application.
+- RST (1 bit): Reset the connection
+- SYN (1 bit): Synchronize sequence numbers. Only the first packet sent from each end should have this flag set. Some other flags and fields change meaning based on this flag, and some are only valid when it is set, and others when it is clear.
+- FIN (1 bit): Last packet from sender.
+
+[[https://en.wikipedia.org/wiki/Transmission_Control_Protocol][Source]]
+#+END_QUOTE
+
+#+BEGIN_QUOTE
+window size (16 bits)
+the size of the receive window, which specifies the number of window size units (by default, bytes) (beyond the segment identified by the sequence number in the acknowledgment field) that the sender of this segment is currently willing to receive (see flow control and window scaling).
+
+[[https://en.wikipedia.org/wiki/Transmission_Control_Protocol][Source]]
+#+END_QUOTE
+
+*** Réponse aux questions
+
+La structure de la trame est visible plus haut.
+
+La couche liaison (ici, de type ethernet) nous donne simplement l'adresse MAC de la source et de la destination, ainsi que le protocole utilisé, ici le protocole internet version 4.
+
+On a ici, dans la terminologie Tanenbaum :
+
+Host-to-network (couche liaison) : ethernet
+Protocole internet : IPv4
+Protocole transport : TCP
+Protocole application : HTTP
+
+Comment sait-on que le protocole HTTP est utilisé dans la couche applicative, alors même qu'aucune documentation dans le sujet de Lab n'est fournie ?
+La transcription automatique en ASCII réduit dans la colonne de droite nous donne GET HTTP/1.1
 
 
 ** Introduction to dump analysis, wireshark/tshark
 
-Wireshark est un très bon analyseur de dump, qui vient aussi avec sa version en CLI.
+Wireshark est un très bon analyseur de dump, qui vient aussi avec sa version en CLI, tshark.
+
+Il peut être setup comme sonde, moyennant les droits du superutilisateur (fonctionne aussi sans, mais moins de fonctionnalités sont disponibles). On peut aussi s'en servir comme analyseur de dump. Il permet de faire ce qu'on a fait plus haut de manière bien moins fastidieuse :
+- le dump est proprement séparé en paquets
+- il ne reste que le signal
+- les trois colonnes montrées plus haut sont affichées
+- Les segments sont analysés et traduits, tous les calculs fastidieux sont faits
+- On voit la correspondance entre le segment traduit et sa position dans le dump
+
+** Rappels sur la structure du réseau à L'UPMC
+
+Le support de ce lab précise en annexe la structure du réseau local, à laquelle on se réfèrera si besoin.
+
+En gros, chaque poste de la salle 14-15 503 :
+- Peut se connecter via un réseau d'administration à trois machines virtuelles installés sur des PC physiques de la salle des machines d'à côté (ces PC en racks sont connectés par un switch, lui-même connecté à un routeur)
+- Ces machines virtuelles sont accessibles par l'adresse IP : 10.0.7.N1 et 10.0.7.N2 et 10.0.7.N3, N étant le numéro de la machine physique de la salle. Ces adresses IP sont celles rattachées à l'interface réseau eth0 des machines virtuelles (donc dans le réseau d'administration)
+- Ces machines virtuelles disposent d'une autre interface réseau eth1 qui permet d'accéder à un autre LAN qui regroupe les trois VM d'un poste (et uniquement celles-ci) : ce réseau LAN est donc probablement virtuel, il en faut un par poste. Les adresses IP sur ce réseau sont donc de la forme : 10.N.1.N1 et 10.N.1.N2 et 10.N.1.N3. Ce réseau est isolé de l'autre, et c'est sur ce réseau-là que les analyses de trafic se feront.
+
+Il y a trois machines virtuelles : une pour jouer le client, une pour jouer le serveur, et une pour sonder (wireshark devra être plug sur celle-ci).
+
+On se connecte en SSH sur les trois machines, en permettant la transmission des données graphiques du serveur X (flag -X ou -Y pour désactiver les contrôles de sécurité, utilisé en pratique). C'est sur la machine 2 qu'on lance wireshark, et on plug wireshark sur l'interface réseau eth1. Physiquement, ce sont les routeurs CISCO de la salle des machines qui assurent la duplication des données.
 
 
+* Annexes
 
+Supports de Lab :
 
-Le but de la manoeuvre est de setup une architecture réseau.
-
-
-
+[[./LAB1/lab1.pdf][Lab 1]]
 

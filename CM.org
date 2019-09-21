@@ -69,17 +69,17 @@ Description des actions et échanges de messages entre 2+ entités de communicat
 
 ** Service
 
-#+BEGIN_QUOTE
+#+BEGIN_DEFINITION
 TCP
 
 Analogie avec le téléphone (connexion). Plus sûr, mais plus lent. Paquets arrivent dans l'ordre.
-#+END_QUOTE
+#+END_DEFINITION
 
-#+BEGIN_QUOTE
+#+BEGIN_DEFINITION
 UDP
 
 Analogie avec la poste (pas de connexion). Moins sûr, paquets perdus ou retardés, mais beaucoup plus rapide.
-#+END_QUOTE
+#+END_DEFINITION
 
 Ces services diffèrent en certaines caractéristiques (ordonnancement, fiabilité, contrôle de flux ou congestion).
 On n'a pas de caractéristique de qualité de service, de débit ou de contrainte de temps dans la définition de ces services.
@@ -93,23 +93,23 @@ Ce sont les protocoles qui sont contrôlés, pas les machines connectées.
 
 ** Topologies
 
-Les applications font abstraction de la topologie du réseau
+Les applications font abstraction de la topologie du réseau.
 
 Modèle client-serveur
 Modèle p2p
 
 ** Délais
 
-Traitement dans le noeud (incompressible)
-File d'attente (nul si pas de congestion)
-Délai de transmission (dépend de la taille du paquet)
-Propagation (vitesse de la lumière)
+On peut distinguer différents types de délais :
 
-
+- Traitement dans le noeud (incompressible)
+- File d'attente (nul si pas de congestion)
+- Délai de transmission (dépend de la taille du paquet)
+- Propagation (Le paquet ne peut pas aller plus vite que la vitesse de la lumière)
 
 * Annexes
 
-Support de cours :
+Supports de cours :
 
 [[./CM1/cours1.pdf][Cours 1]]
 
