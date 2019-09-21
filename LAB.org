@@ -1,0 +1,26 @@
+#+TITLE : Prise de notes LAB 4I001 ARES
+#+PROPERTY: header-args :mkdirp yes
+#+STARTUP: inlineimages
+
+Olivier Fourmaux (olivier.fourmaux@sorbonne-universite.fr)
+4I001
+
+* Lab 1 : 20/09/2019
+
+** Introduction to dump analysis, by hand
+
+[inclure la feuille volante moche, reprendre toute l'analyse au propre]
+
+
+** Introduction to dump analysis, wireshark/tshark
+
+Wireshark est un très bon analyseur de dump, qui vient aussi avec sa version en CLI.
+
+
+
+
+Le but de la manoeuvre est de setup une architecture réseau.
+
+
+
+

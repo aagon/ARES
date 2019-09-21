@@ -1,0 +1,115 @@
+#+TITLE : Prise de notes CM 4I001 ARES
+#+PROPERTY: header-args :mkdirp yes
+#+STARTUP: inlineimages
+
+Olivier Fourmaux (olivier.fourmaux@sorbonne-universite.fr)
+4I001
+
+* Informations pratiques
+
+** Pré-requis
+
+Suppose la complétion du cours 3I014 (Introductions aux réseaux).
+Tanenbaum (cours de licence)
+
+Mais cours conçu pour être autosuffisant.
+
+** Contenu
+
+On se concentrera sur TCP/IP, les mécanismes dynamiques anti-congestion.
+
+On part des applications, pour se rapprocher des protocoles et des technologies de bas niveau.
+
+** Horaires et salles
+
+TD et TME sont sur 4 heures contigües. Dans une salle qui a une architecture qui permet la séparation client serveur (14-15:503).
+
+10 semaines (2 semaines par partie)
+10 * 2 CM
+10 * 4 TD/TME (Lab)
+
+Les cours et les labs sont sur la même semaine (inhabituel : une semaine de décalage en général)
+
+** Examens
+
+Examens répartis (pas de règle du max, moyenne)
+
+1 antisèche *manuscrite* (recto-verso) autorisée.
+3-4 questions.
+
+Rattrapage non-autorisé si note supérieure à 10.
+
+** Supports
+
+Documents et supports de cours sont sur la page perso.
+
+Les traces de trafic sont pré-enregistrées et consultables sur le site (en cas de panne, c'est normalement à nous à l'enregistrer).
+Les traces sont faisables depuis la maison (droits d'administrateur sur le paquet de logging et de traçage).
+
+Annales d'examen
+
+
+* Cours 1 : 16/09/2019
+
+Les mécanismes de base ont assez peu changé. (TCP/IP est stable depuis les années 90).
+
+Ce sont le réseau et les applications qui changent.
+
+Réseau transit : Réseau sans machine terminale
+
+Bonne intégration entre UNIX et IP (développé par les mêmes personnes)
+
+** Protocole
+
+#+BEGIN_DEFINITION
+Protocole
+
+Description des actions et échanges de messages entre 2+ entités de communication. Format, codage et séquencement des messages doivent y être spécifiés.
+#+END_DEFINITION
+
+** Service
+
+#+BEGIN_QUOTE
+TCP
+
+Analogie avec le téléphone (connexion). Plus sûr, mais plus lent. Paquets arrivent dans l'ordre.
+#+END_QUOTE
+
+#+BEGIN_QUOTE
+UDP
+
+Analogie avec la poste (pas de connexion). Moins sûr, paquets perdus ou retardés, mais beaucoup plus rapide.
+#+END_QUOTE
+
+Ces services diffèrent en certaines caractéristiques (ordonnancement, fiabilité, contrôle de flux ou congestion).
+On n'a pas de caractéristique de qualité de service, de débit ou de contrainte de temps dans la définition de ces services.
+
+** Standardisation
+
+Groupes de travail IETF réguliers.
+Les standards sont des standards de fait plutôt que de droit.
+
+Ce sont les protocoles qui sont contrôlés, pas les machines connectées.
+
+** Topologies
+
+Les applications font abstraction de la topologie du réseau
+
+Modèle client-serveur
+Modèle p2p
+
+** Délais
+
+Traitement dans le noeud (incompressible)
+File d'attente (nul si pas de congestion)
+Délai de transmission (dépend de la taille du paquet)
+Propagation (vitesse de la lumière)
+
+
+
+* Annexes
+
+Support de cours :
+
+[[./CM1/cours1.pdf][Cours 1]]
+
