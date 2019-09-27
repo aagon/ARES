@@ -107,9 +107,134 @@ On peut distinguer différents types de délais :
 - Délai de transmission (dépend de la taille du paquet)
 - Propagation (Le paquet ne peut pas aller plus vite que la vitesse de la lumière)
 
+
+* Cours 2 : 23/09/2019
+
+** Applications historiques
+
+à l'origine, Internet était conçu pour le transfert de fichiers.
+
+Dans la couche applicative, on raisonne de bout en bout : on fait abstraction du réseau (des couches inférieures).
+
+#+BEGIN_DEFINITION
+Couche application
+
+Ensemble des programmes et protocoles de haut niveau qui permettent aux utilisateurs (les processus) de communiquer.
+#+END_DEFINITION
+
+Plusieurs architectures possibles :
+- N Clients - 1 serveur : fonctionne sur des requêtes simples, ou pour un petit nombre de clients
+- N Clients - M serveurs : Des séries de serveur (plus complexe, plus résilient)
+- N Clients-serveurs : P2P
+
+La couche applicative de TCP/IP correspond aux couches Applications, Présentation et Session du modèle OSI.
+
+*** La connexion à distance
+
+Protocoles TELNET, RLOGIN (unix old-school), SSH (unix new-school).
+
+Application de type client serveur.
+
+On a surtout besoin d'interactivité (il ne faudrait pas attendre le prompt trop longtemps).
+
+Notion de Network Virtual Terminal : il faut savoir séparer les commandes (contrôle) des données (caractères du terminal) (contrôle dans la bande).
+
+
+Aujourd'hui, on utilise Secure Shell (ssh), qui contrairement à telnet ou rlogin, garantit la confidentialité et l'intégrité des données transférées.
+
+*** Transfert de fichiers
+
+Il n'est pas question ici des systèmes de fichiers distants (NFS, SSHFS, SMB), mais des transferts de fichiers explicites.
+
+Signalisation out-of-bands : deux connexions, de contrôle (en général 21) et une de données (en général 20).
+
+Accès interactif (ce qui est une contrainte plus qu'un avantage).
+
+Une connexion par fichier : créé automatiquement une séparation entre les fichiers.
+
+
+FTP est un vieux protocole, dispose de pleins d'options historiques. Dans les faits, on s'en sert aujourd'hui sur des fichiers non-structurés, codés en ASCII ou en binaire (attention aux conversion DOS/UNIX dans ce cas !), la transmission est faite en flux (TCP)
+
+Les commandes effectives qui passent sur le réseau et les commandes utilisateurs ne sont pas les mêmes : A dire vrai, on peut penser plusieurs implémentations d'un client FTP, qui ont plein de commandes utilisateur différentes des autres implémentations, mais qui sont toujours exprimables en commandes effectives du protocole FTP.
+
+
+Dans le cas d'un autre protocole, TFTP (Trivial File Transfer Protocol), qui fonctionne sous UDP, vu que la fiabilité des données ne peut pas être garantie au niveau de la couche trnasport (UDP), elle doit être implémentée au niveau de l'application. Dans le cas de TFTP, les paquets sont numérotés : si les numéros ne correspondent pas, la connexion est interrompue.
+
+*** Systèmes de P2P
+
+**** Exemple de Napster
+
+Les utilisateurs chargent la liste des fichiers à partager. Les adresses des fichiers (ou des bouts de fichiers) sont renvoyés aux clients.
+
+Mais le serveur est centralisé (SPOF)
+
+**** Exemple de Gnutella
+
+Recherche par inondation : je demande à N pairs s'ils ont le fichier. S'ils n'ont pas le fichier, ils le demandent à N pairs chacun.
+
+On créé un réseau virtuel. Résilient au départ des pairs (ils peuvent être remplacés par leurs voisins) : dynamique.
+
+Scale très mal.
+
+**** Exemple de bittorrent
+
+Découpage d'un fichier en blocs (chunk)
+Le fichier torrent qui contient des méta-données
+Tracker supervise la distribution (quoi se trouve où)
+
+Résistance au flash-crowd. Plus résilient avec un plus grand nombre d'utilisateurs.
+
+Problème des free-riders, plusieurs manières de solutionner.
+
+Mesure de la rareté des chunks par le tracker : on pourra optimiser les transmissions en fonction de la rareté, on veut disséminer le fichier dans son ensemble très vite.
+
+Pas de système de recherche implémenté dans le protocole, les fichiers graine qui contiennent l'adresse des trackers doivent être obtenu autrement (par internet).
+
+
+** Applications principales (Killer apps)
+
+*** La messagerie électronique
+
+Pas dans une application client-serveur classique, le trafic peut passer par des relais.
+
+- Mail User Agent : mu4e, thunderbird, etc...
+
+Les chercheurs ont adoré la messagerie, très pratique dans les années 80 et 90 : courrier très long, téléphone très cher.
+
+- Mail Transfer agent (serveur de mail)
+
+- SMTP : au début fonctionne seulement pour des messages encodés en ASCII NVT.
+Le protocole est très simple : en fait, les trucs du genre le sujet, les flags, etc... sont directement dans le message, qui est structuré d'une manière particulière.
+
+**** Evolution de l'encodage :
+
+***** Quoted-printable (Q) :
+Echappement, combinaison de caractères
+
+?Charset?encode?encoded-text?
+L'échappement se fait avec '='.
+
+=?iso-8859-2?Q?Igen,=20k=F6sz=F6n=F6m?=
+ köszönöm (mercè ! en hongrois)
+
+***** Base64 (B)
+
+Trois octets de texte codée sur 4 caractères ASCII
+
+réencodé en binaire, devient du gibberish, pour être désencodé à l'autre bout.
+
+MIME
+
+** Application de support
+
+Ce qu'il a été besoin de mettre en place pour que les autres applications fonctionnent.
+
+
 * Annexes
 
 Supports de cours :
 
 [[./CM1/cours1.pdf][Cours 1]]
+[[./CM2/cours2.pdf][Cours 2]]
+
 
