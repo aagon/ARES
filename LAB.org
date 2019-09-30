@@ -179,6 +179,7 @@ Il peut être setup comme sonde, moyennant les droits du superutilisateur (fonct
 - Les segments sont analysés et traduits, tous les calculs fastidieux sont faits
 - On voit la correspondance entre le segment traduit et sa position dans le dump
 
+
 ** Rappels sur la structure du réseau à L'UPMC
 
 Le support de ce lab précise en annexe la structure du réseau local, à laquelle on se réfèrera si besoin.
@@ -193,9 +194,214 @@ Il y a trois machines virtuelles : une pour jouer le client, une pour jouer le s
 On se connecte en SSH sur les trois machines, en permettant la transmission des données graphiques du serveur X (flag -X ou -Y pour désactiver les contrôles de sécurité, utilisé en pratique). C'est sur la machine 2 qu'on lance wireshark, et on plug wireshark sur l'interface réseau eth1. Physiquement, ce sont les routeurs CISCO de la salle des machines qui assurent la duplication des données.
 
 
+* Lab 2 : 27/09/2019
+
+** Exercices d'échauffement
+
+*** Qu'est-ce qu'un protocole applicatif
+
+Un protocole applicatif est un protocole (soit un ensemble de règles, et une structure obligatoire, qui régissent l'envoi et la réception des paquets) situé au niveau de la couche applicative, soit la couche la plus haute dans le modèle TCP/IP et dans le modèle OSI. La couche applicative correspond à la communication processus à processus en faisant abstraction des couches inférieures.
+
+*** Quels programmes accédant au réseau utilisez-vous couramment ?
+
+Firefox : protocole applicatif HTTP, HTTPS, FTP, etc...
+Emacs : protocole applicatf HTTP, HTTPS (via un client HTTP, HTTPS intégré)
+
+*** Sur quel modèle de communication s'appuient principalement les applications actuelles ?
+
+Le modèle client-serveur, les applications en pair à pair (ce qui est une extension du modèle client-serveur).
+
+Les participants sont donc soit des clients, soit des serveurs (soit les deux à la fois).
+
+Si on prend l'exemple de l'application HTTP, on distingue le client et le serveur à la chose suivante : le serveur est un processus démon, qui tourne tout le temps en arrière-plan pour écouter des requêtes, et le client formule les requêtes.
+
+Même chose pour le protocole applicatif SSH, par exemple : le serveur se reconnaît à ce que c'est lui qui exécute les instructions, le client à ce que c'est lui qui les envoie.
+
+*** Décrivez les grandes catégories d'applications utilisant les réseaux ?
+
+On peut penser aux applications de contrôle à distance (style telnet, rlogin, ssh), qui ont :
+- Peu de débit demandé (au fond, on ne transmet que du texte dans les deux sens)
+- Mais une latence faible (on veut que le prompt soit réactif)
+- Grosse sensibilité aux pertes (pas d'erreur, mais des re-demandes de paquets et donc des plus grosses latences)
+
+Aux applications de jeu vidéo en ligne :
+- Un peu de débit demandé (on transmet du texte, mais on en transmets beaucoup, et de manière redondante).
+- Latence très faible demandée
+- Tolérance aux pertes élevées
+
+** Connexion à distance
+
+*** Quelle est l'utilité des applications de connexion à distance (remote login) ?
+
+La meilleure application est la capacité qu'on obtient d'administrer un grand nombre de machines à distance. Les machines peuvent désormais être stockées et entassées dans des endroits spécialisés.
+
+*** Quels types d'informations sont échangés par ce genre d'application ?
+
+** Capture d'un trafic TELNET
+
+Comme d'habitude, on se connecte sur les machines virtuelles (serveur, client, traceur).
+
+On se connecte en telnet de la machine 1 à la machine 3.
+
+*** Analyse de la négociation
+
+On peut voir la trace :
+
+| 0000 | 06 aa 03 3b 5c 08 06 aa 01 97 23 b5 08 00 45 10 |
+| 0010 | 00 4f 27 cb 40 00 40 06 fb c2 0a 0c 01 79 0a 0c |
+| 0020 | 01 7b a2 14 00 17 56 48 c1 90 79 d1 19 60 80 18 |
+| 0030 | 00 e5 95 a1 00 00 01 01 08 0a 7a 4f e6 46 68 49 |
+| 0040 | 33 a5 ff fd 03 ff fb 18 ff fb 1f ff fb 20 ff fb |
+| 0050 | 21 ff fb 22 ff fb 27 ff fd 05 ff fb 23          |
+
+
+si on se limite à la couche applicative :
+
+| 0042 | ff fd 03 ff fb 18 ff fb 1f ff fb 20 ff fb 21 ff | ........... ..!. |
+| 0052 | fb 22 ff fb 27 ff fd 05 ff fb 23                | ."..'.....#      |
+
+
+Telnet
+    Do Suppress Go Ahead
+        Command: Do (253)
+        Subcommand: Suppress Go Ahead
+    Will Terminal Type
+        Command: Will (251)
+        Subcommand: Terminal Type
+    Will Negotiate About Window Size
+        Command: Will (251)
+        Subcommand: Negotiate About Window Size
+    Will Terminal Speed
+        Command: Will (251)
+        Subcommand: Terminal Speed
+    Will Remote Flow Control
+        Command: Will (251)
+        Subcommand: Remote Flow Control
+    Will Linemode
+        Command: Will (251)
+        Subcommand: Linemode
+    Will New Environment Option
+        Command: Will (251)
+        Subcommand: New Environment Option
+    Do Status
+        Command: Do (253)
+        Subcommand: Status
+    Will X Display Location
+        Command: Will (251)
+        Subcommand: X Display Location
+
+
+** Capture de RLOGIN
+
+** Capture de SSH
+
+** FTP
+
+*** Forme du document
+
+Forme du document en plain-texte, lisible partout, en particulier pour les terminaux 80x24 caractères.
+
+Section sur toutes les fonctions FTP, séparé en deux sections.
+Une section qui explique les codes numériques, à quoi ils correspondent.
+
+Contraintes sur les serveurs.
+
+Les commandes FTP, les arguments demandés.
+
+*** Architecture de communication, hors-bande
+
+On dit que les in
+
+*** Les commandes
+
+RFC 959, pages 47 et 48.
+
+#+BEGIN_QUOTE
+
+         The following are the FTP commands:
+            USER <SP> <username> <CRLF>
+            PASS <SP> <password> <CRLF>
+            ACCT <SP> <account-information> <CRLF>
+            CWD  <SP> <pathname> <CRLF>
+            CDUP <CRLF>
+            SMNT <SP> <pathname> <CRLF>
+            QUIT <CRLF>
+            REIN <CRLF>
+            PORT <SP> <host-port> <CRLF>
+            PASV <CRLF>
+            TYPE <SP> <type-code> <CRLF>
+            STRU <SP> <structure-code> <CRLF>
+            MODE <SP> <mode-code> <CRLF>
+            RETR <SP> <pathname> <CRLF>
+            STOR <SP> <pathname> <CRLF>
+            STOU <CRLF>
+            APPE <SP> <pathname> <CRLF>
+            ALLO <SP> <decimal-integer>
+                [<SP> R <SP> <decimal-integer>] <CRLF>
+            REST <SP> <marker> <CRLF>
+            RNFR <SP> <pathname> <CRLF>
+            RNTO <SP> <pathname> <CRLF>
+            ABOR <CRLF>
+            DELE <SP> <pathname> <CRLF>
+            RMD  <SP> <pathname> <CRLF>
+            MKD  <SP> <pathname> <CRLF>
+            PWD  <CRLF>
+            LIST [<SP> <pathname>] <CRLF>
+            NLST [<SP> <pathname>] <CRLF>
+            SITE <SP> <string> <CRLF>
+            SYST <CRLF>
+            STAT [<SP> <pathname>] <CRLF>
+            HELP [<SP> <string>] <CRLF>
+            NOOP <CRLF>
+
+
+            <username> ::= <string>
+            <password> ::= <string>
+            <account-information> ::= <string>
+            <string> ::= <char> | <char><string>
+            <char> ::= any of the 128 ASCII characters except <CR> and
+            <LF>
+            <marker> ::= <pr-string>
+            <pr-string> ::= <pr-char> | <pr-char><pr-string>
+            <pr-char> ::= printable characters, any
+                          ASCII code 33 through 126
+            <byte-size> ::= <number>
+            <host-port> ::= <host-number>,<port-number>
+            <host-number> ::= <number>,<number>,<number>,<number>
+            <port-number> ::= <number>,<number>
+            <number> ::= any decimal integer 1 through 255
+            <form-code> ::= N | T | C
+            <type-code> ::= A [<sp> <form-code>]
+                          | E [<sp> <form-code>]
+                          | I
+                          | L <sp> <byte-size>
+            <structure-code> ::= F | R | P
+            <mode-code> ::= S | B | C
+            <pathname> ::= <string>
+            <decimal-integer> ::= any decimal integer
+
+#+END_QUOTE
+
+*** Erreurs :
+
+** Capture d'un trafic FTP
+
+
+
+
 * Annexes
 
 Supports de Lab :
 
 [[./LAB1/lab1.pdf][Lab 1]]
+[[./LAB2/lab2.pdf][Lab 2]]
+
+
+** Méthode
+
+Timur insiste sur l'importance des chronogrammes.
+
+[On incluera une photo]
+
+
 
