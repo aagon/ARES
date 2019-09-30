@@ -225,9 +225,159 @@ réencodé en binaire, devient du gibberish, pour être désencodé à l'autre b
 
 MIME
 
-** Application de support
+
+** Applications de support
 
 Ce qu'il a été besoin de mettre en place pour que les autres applications fonctionnent.
+
+
+* Cours 3 : 30/09/2019
+
+** Applications de support (suite)
+
+*** La messagerie électronique
+
+**** Nouveaux en-têtes MIME
+
+Le but de MIME est de typer et structurer des envois, pour pouvoir envoyer autre chose que du texte.
+
+Les types MIME (cat /etc/mime.types)
+
+Indique ce que l'objet est.
+
+MIME fonctionne par sous en-tête, qui donne les limites des blocs, et ce que chaque bloc est.
+
+#+BEGIN_EXAMPLE
+From: Olivier Fourmaux <olivier.fourmaux@lip6.fr>
+Date: Wed, 20 Feb 2002 01:21:01 +0100
+To: Toto <toto@free.fr>
+Subject: Document no 3.02
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="/9DWx/yDrRhgMJTb"
+Content-Disposition: inline Content-Transfer-Encoding: 8bit
+User-Agent: Mutt/1.2.5i
+
+--/9DWx/yDrRhgMJTb
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit 
+
+Voici le document secret que vous m’avez demandé...
+
+--/9DWx/yDrRhgMJTb
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="sujet-exam-RES.pdf"
+Content-Transfer-Encoding: base64 
+JVBERi0xLjIKJcfsj6IKNSAwIG9iago8PC9MZW5ndGggNiAwIFIvRmlsdGVyIC9GbGF0ZURl
+Y29kZT4+CnN0cmVhbQp4nO1dy7YdtRGd3684Mx6L07T63ZkBdghgXvYlJFlMHNsYm+sHhkCS...
+#+END_EXAMPLE
+
+**** POP3
+
+Vu qu'on ne peut pas toujours être connecté au serveur de mail, soit par NFS (comme on faisait dans le temps jadis).
+
+POP = Post Office Protocol
+
+Trois phases :
+- Autorisation
+- Transaction
+- Mise à jour
+
+Problème de POP : ne supprime pas les messages du serveur, ne synchronise pas entre les éventuels clients.
+
+**** IMAP
+
+Internet Mail Access Protocol : permet la synchronisation, mais alors beaucoup plus coûteux.
+
+**** Sécurité
+
+Pas de sécurité à l'origine. Comment garantir l'intégrité et l'authenticité des messages ?
+
+Pas du ressort du protocole : c'est au niveau applicatif qu'on peut se démerder pour encrypter.
+
+*** Le World Wide Web
+
+Développé au CERN (diffère de l'internet, qui est juste un regroupement de réseaux).
+
+Permet d'afficher des images, ce qui a fait son succès immédiat. (change de Gopher, où on ne pouvait afficher que du texte)
+
+**** HTTP, principe
+
+HyperText Transfer Protocol
+
+[inclure image]
+
+L'hypertexte est une manière de lire de l'information non-séquentiellement, mais permet d'inclure tout type de données.
+HyperText Markup Language : Balises sont des liens vers des ressources à récupérer et mettre dans la page.
+C'est au navigateur de se démerder pour reformer tout ça.
+
+Les adresses sont données sous la forme URL :
+Protocole://Domaine/Arborescence
+
+De fait, mon navigateur ne gère pas que http, il peut gérer probablement ftp aussi : c'est un client générique
+
+HTTP définit des échanges : requêtes d'objet, réponses
+
+Protocole sans état : très robuste : on peut recommencer où on veut.
+
+**** Structure des requêtes et réponses HTTP
+
+[Inclure échange]
+
+**** Sécurité
+
+Authentification
+
+
+On est sans état : le serveur peut demander à ce qu'un certain ensemble de paramètres ou d'informations soient stockés en local (puisque rien n'est stocké sur le serveur). Notion de *cookie*. Spécifique au navigateur, par contre. Le navigateur peut n'en tenir aucun compte.
+
+Le serveur enregistre les correspondances entre paramètres stockés et infomation
+
+**** Proxy
+
+On peut imaginer une proximité de contenu entre les utilisateurs : on pourrait imaginer un cache et un serveur unique qui garderait les informations requêtées pour les ditribuer : notion de *proxy*, ou de serveur mandataire.
+
+Bénéfice supplémentaire : permet de filtrer et de fliquer.
+
+Réplication des contenus des grands sites : permet de diminuer la latence du chargement.
+
+**** Internet moderne
+
+Le web moderne se charge de plein de choses inutiles et coûteuses. (Modern Web sucks)
+Les trucs qui ne servent à rien sont bien entendus chargés en premier, ce serait trop facile sinon, on pourrait couper la communication ensuite.
+
+On a eu besoin d'inventer des optimisations (HTTP 2). Parmi celles-ci, on a les flux multiplexés (plusieurs GET dans une même connexion TCP), la compression binaire des en-têtes, etc...
+
+*** Multimedia
+
+**** RTP & RTCP
+
+Real-Time Transport Protocol (basé sur le protocole de transport UDP)
+
+En vrai, il n'y a pas de temps réel dans l'internet. Associe des horloges au contenu transmis : ne garantit rien de l'ordre du temps réel.
+
+RTCP est un protocole associé à RTP (encapsulé dans un RTP existant)
+Standardisé, mais dans une application (pas de port standart).
+
+[Format message RTP]
+
+La source choisit son horloge.
+
+Pour la voix, on va avoir tendance à envoyer les paquets dans l'ordre, et avoir une fréquence d'horloge à peu près égale à l'échantillonnage de l'audio (fréquence des données).
+
+Multicanal (genre stéréo) : Les canaux se suivent dans un même message RTP (le nombre de canaux ne peut pas augmenter n'importe comment)
+
+Pour la vidéo, ça se fait de faire de l'interpolation, de ne pas envoyer les données dans l'ordre. 90kHz : multiple entier pour les fréquences usuelles de restitution des images.
+
+#+BEGIN_DEFINITION
+Gigue (en. jitter)
+
+Décalage dans le temps entre le départ et l'arrivée : si on veut pouvoir la calculer, on doit avoir plus de précision que la fréquence de restitution.
+#+END_DEFINITION
+
+*** Contrôle de tous ces flux
+
+Principalement hors-bande, plusieurs protocoles, spécifiques à la vidéo, à la téléphonie, etc...
 
 
 * Annexes
