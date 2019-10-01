@@ -274,7 +274,7 @@ Y29kZT4+CnN0cmVhbQp4nO1dy7YdtRGd3684Mx6L07T63ZkBdghgXvYlJFlMHNsYm+sHhkCS...
 
 **** POP3
 
-Vu qu'on ne peut pas toujours être connecté au serveur de mail, soit par NFS (comme on faisait dans le temps jadis).
+Vu qu'on ne peut pas toujours être connecté au serveur de mail, soit par NFS (comme on faisait dans le temps jadis), soit par un terminal vers le mainframe.
 
 POP = Post Office Protocol
 
@@ -283,11 +283,11 @@ Trois phases :
 - Transaction
 - Mise à jour
 
-Problème de POP : ne supprime pas les messages du serveur, ne synchronise pas entre les éventuels clients.
+Problème de POP : supprime ou ne supprime pas les messages du serveur, donc ne synchronise pas entre les éventuels clients.
 
 **** IMAP
 
-Internet Mail Access Protocol : permet la synchronisation, mais alors beaucoup plus coûteux.
+Internet Mail Access Protocol : permet la synchronisation, mais alors beaucoup plus coûteux : on doit vérifier les états entre les différents clients, résoudre les conflits.
 
 **** Sécurité
 

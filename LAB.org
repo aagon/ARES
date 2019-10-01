@@ -198,14 +198,14 @@ On se connecte en SSH sur les trois machines, en permettant la transmission des 
 
 ** Exercices d'échauffement
 
-*** Qu'est-ce qu'un protocole applicatif
+*** Qu'est-ce qu'un protocole applicatif ?
 
 Un protocole applicatif est un protocole (soit un ensemble de règles, et une structure obligatoire, qui régissent l'envoi et la réception des paquets) situé au niveau de la couche applicative, soit la couche la plus haute dans le modèle TCP/IP et dans le modèle OSI. La couche applicative correspond à la communication processus à processus en faisant abstraction des couches inférieures.
 
 *** Quels programmes accédant au réseau utilisez-vous couramment ?
 
 Firefox : protocole applicatif HTTP, HTTPS, FTP, etc...
-Emacs : protocole applicatf HTTP, HTTPS (via un client HTTP, HTTPS intégré)
+Emacs : protocole applicatif HTTP, HTTPS (via un client HTTP, HTTPS intégré)
 
 *** Sur quel modèle de communication s'appuient principalement les applications actuelles ?
 
@@ -236,6 +236,8 @@ Aux applications de jeu vidéo en ligne :
 La meilleure application est la capacité qu'on obtient d'administrer un grand nombre de machines à distance. Les machines peuvent désormais être stockées et entassées dans des endroits spécialisés.
 
 *** Quels types d'informations sont échangés par ce genre d'application ?
+
+Des informations de contrôle, principalement, des informations du système de fichier distant, ou d'administration.
 
 ** Capture d'un trafic TELNET
 
@@ -293,7 +295,11 @@ Telnet
 
 ** Capture de RLOGIN
 
+[analyse ici]
+
 ** Capture de SSH
+
+[analyse ici]
 
 ** FTP
 
@@ -386,7 +392,7 @@ RFC 959, pages 47 et 48.
 
 ** Capture d'un trafic FTP
 
-
+[analyse ici]
 
 
 * Annexes
