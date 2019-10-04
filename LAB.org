@@ -395,6 +395,264 @@ RFC 959, pages 47 et 48.
 [analyse ici]
 
 
+
+
+* Lab 3 : 04/10/2019
+
+** Capture d'un trafic FTP, suite
+
+*** Question 1
+
+Par la définition d'un client et d'un serveur, c'est le client qui initie la connexion.
+
+On ne l'observe dans la capture qu'à condition de ne pas avoir filtré (ftp || ftp-data). Sinon, on croit voir le serveur qui initie la connexion, ce qui n'est pas possible.
+
+En vérité, le client initie la connexion par une requête TCP vide vers le port où le serveur ftp écoute (par défaut 21, mais ce n'est pas obligatoire) (vide au sens où il n'y a rien après la couche TCP de la requête). (l'option NOP de l'en-tête est activée)
+
+Le serveur renvoie une réponse qui est aussi vide après la couche TCP : les flags SYN (demande de ACK) et ACK sont activés.
+
+Le client répond par un ACK : tout va bien.
+
+Le serveur initie la première requête TCP non-vide, qui est une réponse au dernier ACK. La couche applicative suit le protocole FTP, bien entendu, et donne une réponse 220 (prêt)
+
+Le client ACK.
+
+Le serveur demande un login.
+
+*** Question 2
+
+C'est la commande USER du protocole FTP qui identifie l'utilisateur. Dans notre exemple, elle a un unique argument qui est le nom d'utilisateur qu'on peut lire, parce qu'il est envoyé en clair.
+
+Le serveur ACK.
+
+Et il envoie la réponse 331 : besoin du mot de passe.
+
+Le client ACK.
+
+*** Question 3
+
+La commande qui identifie l'utilisateur est la commande FTP PASS.
+Le mot de passe apparaît bien en clair sur le réseau, en argument de la commande PASS.
+
+Le serveur répond par le code 230 (user logged in, proceed) si tout se passe bien, sinon :
+
+530 (Incorrect login), et le serveur redemande le login et le mot de passe.
+
+*** Question 4
+
+La commande client qui suit l'authentification est SYST, elle sert au client à connaître le système du serveur. La réponse est UNIX. On ne comprend pas bien pourquoi le client aurait besoin d'en connaître.
+
+*** Question 5
+
+La commande PORT est vitale. Le protocole FTP est un protocole hors-bande, ce qui signifie que le contrôle et les données ne transitent pas par le même port.
+
+Le client dit au serveur sur quel port il tient à recevoir des données. On peut le voir dans les arguments de la commande :
+
+10,13,1,131,141,197.
+
+Les deux derniers nombres (141, 197) doivent être convertis pour en faire le port.
+
+141 est écrit en trois caractères ASCII : donc trois octets 31 34 31
+on déparse la virgule. 2c
+197 est écrit en trois caractères ASCII : donc trois octets 31 39 37
+
+141 doit en fait être interprété comme un nombre écrit sur un octet (alors qu'il est écrit sur trois, mais passons).
+197 aussi.
+
+Ce qui nous donne un nombre écrit sur deux octets (sur lesquels il est bien possible d'écrire les nombres de 0 à 65535).
+
+Elle est émise à ce point de l'échange parce que le serveur doit savoir où envoyer les données avant de pouvoir les envoyer. Si la question était : "pourquoi est-elle émise seulement maintenant ?", parce qu'on en avait pas besoin avant.
+
+*** Question 6
+
+La requête LIST, comme toutes les requêtes qui demandent effectivement des données (LIST demande des données, pour les gens qui n'étaient pas sûrs. EVERYTHING IS A FILE), suscite deux réponse de la part du serveur.
+
+La première réponse est une réponse de contrôle (genre oui/non/peut-être) envoyé sur le port de contrôle du client.
+Le deuxième réponse consiste en les données effectives.
+
+*** Question 7
+
+CWD sert à changer le répertoire courant (elle ne renvoie pas de données, donc une seule connexion).
+
+*** Question 8
+
+Les transferts de fichier ont lieu dès qu'on les demande, après que la réponse 150 de contrôle a été envoyée.
+
+*** Aparté
+
+On a un timeout (900 secondes) qui se manifeste par l'envoi par le serveur d'un message de timeout, qui est ACKé par le client. La connexion est fermée côté serveur.
+
+Quand la commande FTP QUIT est envoyée par le client, le serveur répond par 221 (Goodbye).
+
+Le client ACK et, vu que la communication FTP est terminée, il envoie un message TCP vide portant le flag FIN pour initier la fin de la communication TCP. Le serveur répond avec aussi un message TCP vide portant les flags FIN et ACK.
+
+Le client répond avec un dernier ACK, et c'en est fini de cette communication TCP.
+
+** Analyse de la connexion FTP de données
+
+*** Question 1
+
+A quoi correspondent les données échangées sur la connexion de transfert de données ?
+
+Aux données demandées, sans encodage : tout est transmis tel quel, en paquets de 1448 octets. Donc wireshark pourra lire le texte si on a du texte et si on a du binaire on comprendra rien.
+
+*** Question 2
+
+Sur le port demandé lors de la connexion PORT envoyé au préalable par le client.
+
+*** Question 3
+
+Les messages sur la connexion de données sont envoyés juste après les messages sur la connexion de contrôle.
+
+** Trace FTP longue distance : on ne se considère pas assez en avance pour le moment.
+
+** Capture d'un trafic SCP ou SFTP
+
+*** Question 1
+
+Le fonctionnement des protocoles.
+
+scp est un ensemble de commandes assimilables à la famille des commandes UNIX rcp, mais encapsulé dans une connexion SSH.
+
+sftp est en fait le même protocole que FTP, mais conçu pour être facilement encapsulable dans du SSH.
+
+*** Question 2
+
+A priori non. Tout ce que j'arrive à reconnaître, ce sont les trames de données, par leur taille.
+On ne sait même pas sur quel port les 
+
+*** Question 3
+
+La transmission cryptée plutôt que la transmission en clair est la principale différence fonctionnelle.
+
+Une différence au niveau de l'implémentation, c'est qu'il n'est pas sûr que sftp ouvre des connexions distinctes par fichier : a priori, toutes les communications passent par le même port.
+
+** TFTP
+
+*** Question 1
+
+TFTP est basé sur le protocole transport UDP. Il est extrêmement simple, il n'y a que 5 messages :
+- RRQ (opcode 1) requête de lecture
+- WRQ (opcode 2) requête d'écriture
+- DATA (opcode 3) données numérotées
+- ACK (opcode 4) acquittement
+- ERREUR (opcode 5) message d'erreur
+
+les messages DATA sont de 512 octets (sauf le dernier bien sûr)
+
+Les messages DATA sont numérotés, et immédiatement acquittés.
+
+*** Question 2
+
+On n'a pas les permissions suffisantes pour réaliser un transfert de fichier fonctionnel.
+
+Le dossier sur lequel tftpd n'est pas accessible en écriture.
+
+*** Question 3
+
+Beaucoup plus simple, basé sur UDP/IP, pas de synchronisation, pas de timeout. Contrôle in-band.
+
+** Trafic Web : Exercices
+
+*** Question 1
+
+On a un fichier index.html et deux objets appelés img1.jpg et img2.jpg (logés sur le même serveur).
+
+Trois requêtes GET donc, et on n'a la page qu'à la fin du tranfert des trois objets :
+
+| Client                          |    |    | Serveur |
+| GET /index.html                 | -> |    |         |
+|                                 |    | >- | 200 OK  |
+|                                 |    | <- |         |
+|                                 | -< |    |         |
+| Je dois charger img1 et img2 !  |    |    |         |
+| GET /img1.jpg                   | -> |    |         |
+|                                 |    | >- | 200 OK  |
+|                                 |    | <- |         |
+|                                 | -< |    |         |
+| GET /img2.jpg                   | -> |    |         |
+|                                 |    | >- | 200 OK  |
+|                                 |    | <- |         |
+| Page chargée !                  | -< |    |         |
+
+*** Question 2
+
+Les principales optimisations introduites par HTTP/1.1 :
+- La possibilité d'avoir des connexions persistantes : on peut inclure plusieurs couples de requête puis réponse dans une connexion HTTP.
+- Le caching des ressources est grandement amélioré : avant HTTP/1.1 le cache était spécifique à une ressource. Les ressources, si elles sont les mêmes, peuvent être taguées pour que le lien entre elles puissent être fait.
+
+| Client                                             |    |    | Serveur |
+| GET /                                              | -> |    |         |
+|                                                    |    | >- | 200 OK  |
+|                                                    |    | <- |         |
+|                                                    | -< |    |         |
+| Eventuellement plusieurs fois, si plusieurs objets |    |    |         |
+| Page chargée !                                     |    |    |         |
+
+On imagine les gains en cas de plein de petits objets avec des gros en-têtes.
+
+*** Question 3
+
+Le cache est en général une excellente manière de réduire la latence des entrées/sorties (et un accès réseau est un genre d'entrée/sortie) : c'est basé sur l'idée que certaines ressources sont demandées fréquemment, sans être fréquemment modifiées. Dans ce cas, garder la ressource en question dans un matériel quelconque dont le temps d'accès est plusieurs ordre de grandeur en deçà de l'accès à la "vraie" ressource fait sens. Avant d'utiliser la ressource cachée, on prend bien soin de vérifier qu'elle n'a pas été modifiée dans sa "vraie" version. En général, la taille du cache est plusieurs ordres de grandeur plus petite que la taille des toutes les ressources qu'on requiert.
+
+** Analyse d'un échange HTTP
+
+*** Question 1
+
+On observe le mécanisme de récupération typique du HTTP 1.1 : on a bien une seule connexion HTTP, qui permet bien de récupérer index.html et l'image : le message TCP vide avec le flag FIN n'est envoyé qu'après que toute la page a été récupérée.
+
+Si on avait un serveur sous HTTP 1.0, on verrait plusieurs débuts de connexion TCP (avec le handshake triple) et plusieurs fins (le message TCP vide avec le flag FIN) (deux exactement).
+
+*** Quels paramètres sont négociés entre le client et le serveur ?
+
+
+Ceux-là exactement :
+
+Hypertext Transfer Protocol
+    GET / HTTP/1.1\r\n
+    Host: 10.13.1.133\r\n
+    User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:45.0) Gecko/20100101 Firefox/45.0\r\n
+    Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n
+    Accept-Language: en-US,en;q=0.5\r\n
+    Accept-Encoding: gzip, deflate\r\n
+    Connection: keep-alive\r\n
+    \r\n
+
+Dans cette requête de GET, le client (ici Mozilla) dit qui il est (Mozilla), sous quel serveur graphique, système d'exploitation et jeu d'instructions processeur il fonctionne) : a priori tout ça c'est son problème, le serveur n'a pas à s'en soucier.
+
+Ensuite le client dit les types de fichier qu'il veut bien télécharger (en type MIME)
+Il dit aussi l'encodage qu'il accepte l'encodage gzip
+
+Et la localisation souhaitée.
+
+Le serveur peut décider de ne tenir aucun compte de ces informations.
+
+*** Question 3
+
+L'encodage gzip, par exemple, qu'on peut voir dans l'en-tête de la réponse.
+
+Hypertext Transfer Protocol
+    HTTP/1.1 200 OK\r\n
+    Date: Fri, 04 Oct 2019 19:50:44 GMT\r\n
+    Server: Apache/2.4.25 (Debian)\r\n
+    Last-Modified: Mon, 08 Jul 2019 17:20:00 GMT\r\n
+    ETag: "29cd-58d2ea76f3cdd-gzip"\r\n
+    Accept-Ranges: bytes\r\n
+    Vary: Accept-Encoding\r\n
+    Content-Encoding: gzip\r\n  <---- *ICI*
+    Content-Length: 3041\r\n
+    Keep-Alive: timeout=5, max=100\r\n
+    Connection: Keep-Alive\r\n
+    Content-Type: text/html\r\n
+    \r\n
+
+    Content-encoded entity body (gzip): 3041 bytes -> 10701 bytes
+    File Data: 10701 bytes
+
+*** Question 4
+
+Oui, wireshark le fait
+
 * Annexes
 
 Supports de Lab :

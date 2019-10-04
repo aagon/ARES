@@ -335,7 +335,7 @@ Le serveur enregistre les correspondances entre paramètres stockés et infomati
 
 **** Proxy
 
-On peut imaginer une proximité de contenu entre les utilisateurs : on pourrait imaginer un cache et un serveur unique qui garderait les informations requêtées pour les ditribuer : notion de *proxy*, ou de serveur mandataire.
+On peut imaginer une proximité de contenu entre les utilisateurs : on pourrait imaginer un cache et un serveur unique qui garderait les informations requêtées pour les distribuer : notion de *proxy*, ou de serveur mandataire.
 
 Bénéfice supplémentaire : permet de filtrer et de fliquer.
 
