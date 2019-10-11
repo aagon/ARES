@@ -5,7 +5,7 @@
 Olivier Fourmaux (olivier.fourmaux@sorbonne-universite.fr)
 4I001
 
-* Lab 1 : 20/09/2019
+* Séance 1 : 20/09/2019 (Lab 1)
 
 ** Introduction to dump analysis, by hand
 
@@ -194,7 +194,7 @@ Il y a trois machines virtuelles : une pour jouer le client, une pour jouer le s
 On se connecte en SSH sur les trois machines, en permettant la transmission des données graphiques du serveur X (flag -X ou -Y pour désactiver les contrôles de sécurité, utilisé en pratique). C'est sur la machine 2 qu'on lance wireshark, et on plug wireshark sur l'interface réseau eth1. Physiquement, ce sont les routeurs CISCO de la salle des machines qui assurent la duplication des données.
 
 
-* Lab 2 : 27/09/2019
+* Séance 2 : 27/09/2019 (Lab 2)
 
 ** Exercices d'échauffement
 
@@ -397,7 +397,7 @@ RFC 959, pages 47 et 48.
 
 
 
-* Lab 3 : 04/10/2019
+* Séance 3 : 04/10/2019 (Lab 2)
 
 ** Capture d'un trafic FTP, suite
 
@@ -653,6 +653,241 @@ Hypertext Transfer Protocol
 
 Oui, wireshark le fait
 
+
+* Séance 4 : 11/10/2019 (Lab 3)
+
+** Messagerie, exercices sans machine
+
+*** Question 1
+
+Bob accède à sa messagerie par le web :
+Il se connecte sur un site web, à une application web hébergée sur un serveur quelconque, via le protocole applicatif HTTP.
+
+C'est cette machine à qui Bob transmet ses instructions (écrire le message, avoir envoyé ses identifiants et son mot de passe.) qui va contacter le serveur SMTP (qui peut être hébergé sur la même machine, ou non).
+
+Le client SFTP contacte le serveur SFTP à l'aide des commandes SMTP usuelles : HELO, MAIL <son identifiant>, RCPT <l'adresse d'Alice>.
+
+Le récepteur est validé, le mail est envoyé par le serveur SMTP.
+
+Il est stocké sur le serveur du fournisseur mail de Alice.
+
+Alice rapatrie ses messages sur sa machine locale : implique soit le protocole POP3, IMAP.
+
+On imagine que c'est IMAP :
+
+La machine locale d'Alice demande la synchronisation de la version de la boîte mail distante avec la sienne propre, via le protocole IMAP4.
+
+*** Question 2
+
+Les messages échangés par les serveurs de courrier électroniques consistent juste en du texte :
+
+#+BEGIN_QUOTE
+From: Olivier Fourmaux <olivier.fourmaux@lip6.fr>
+Date: Wed, 20 Feb 2002 01:21:01 +0100
+To: Toto <toto@free.fr>
+Subject: Document no 3.02
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="/9DWx/yDrRhgMJTb"
+Content-Disposition: inline Content-Transfer-Encoding: 8bit
+User-Agent: Mutt/1.2.5i
+
+--/9DWx/yDrRhgMJTb
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit 
+
+Voici le document secret que vous m’avez demandé...
+
+--/9DWx/yDrRhgMJTb
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="sujet-exam-RES.pdf"
+Content-Transfer-Encoding: base64 
+JVBERi0xLjIKJcfsj6IKNSAwIG9iago8PC9MZW5ndGggNiAwIFIvRmlsdGVyIC9GbGF0ZURl
+Y29kZT4+CnN0cmVhbQp4nO1dy7YdtRGd3684Mx6L07T63ZkBdghgXvYlJFlMHNsYm+sHhkCS...
+#+END_QUOTE
+
+On peut bien sûr transférer autre chose que du texte, comme ici un document PDF, qui sera transféré octet par octet.
+
+Les choses qui constituent les métadonnées pour le client font bien partie du message en vrai. Le client parse ce fichier texte et remplit les champs de méta-données pour son utilisateur.
+
+Base64 consiste en la possibilité de coder des caractères écrivables sur 8 bits sur un set de caractères d'encodage de 6 bits : 3 vrais caractères sont codés sur 4 faux. De cette manière, on peut utiliser le protocole SMTP, POP et IMAP, qui requièrent absolument du NVT (ASCII réduit à 7 bits), tout en écrivant des caractères codables sur 8 bits. Ca ne dispense pas d'avoir un grand nombre de charset pour écrire tous les langages du monde.
+
+*** Question 3
+
+On se sert d'un outil en ligne :
+
+C'est pas facmle !
+
+*** Question 4
+
+D'après la liste des en-têtes MIME fournies par Olivier Fourmaux, ça devrait ressembler à peu près à ça.
+
+#+BEGIN_QUOTE
+From: Olivier Fourmaux <olivier.fourmaux@lip6.fr>
+Date: Wed, 20 Feb 2002 01:21:01 +0100
+To: Toto <toto@free.fr>
+Subject: Document no 3.02
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="/9DWx/yDrRhgMJTb"
+Content-Disposition: inline Content-Transfer-Encoding: 8bit
+User-Agent: Mutt/1.2.5i
+
+--/9DWx/yDrRhgMJTb
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit 
+
+Voici le document secret que vous m’avez demandé...
+
+--/9DWx/yDrRhgMJTb
+Content-Type: text/html; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit 
+
+// HTML OUAIS !
+
+--/9DWx/yDrRhgMJTb
+Content-Type: image/png;
+Content-Disposition: attachment; filename="monimage.png""
+Content-Transfer-Encoding: base64
+gibberishgibberish......
+
+--/9DWx/yDrRhgMJTb
+Content-Type: audio/mpeg;
+Content-Disposition: attachment; filename="monson.mp3""
+Content-Transfer-Encoding: base64
+(...se_balade_en_ville_avec_un_brelic)boobapoetemoderne......
+
+//Ici le WAD pour DOOM, on n'a pas +cherché+ trouvé le mime type pour ce fichier. 
+
+#+END_QUOTE
+
+** Emission du message
+
+*** Question 1
+
+Commandes observées su protocole SMTP :
+
+(aparté : on croit voir le serveur initier la connexion, c'est faux : il y a une query TCP vide avant)
+
+
+Client :
+EHLO client.etu13.plateforme.lan
+(sert à se présenter et à demander les options)
+
+Serveur :
+Response: 250-mail.etu13.plateforme.lan\r\n
+Response: 250-PIPELINING\r\n
+Response: 250-SIZE 10240000\r\n
+Response: 250-VRFY\r\n
+Response: 250-ETRN\r\n
+Response: 250-STARTTLS\r\n
+Response: 250-ENHANCEDSTATUSCODES\r\n
+Response: 250-8BITMIME\r\n
+Response: 250 DSN\r\n
+(Voilà les options supportées par le serveur SMTP.)
+
+Client :
+MAIL FROM:<etudiant@etu13.plateforme.lan>\r\n
+(sert à donner l'expéditeur du message)
+
+Serveur :
+Response: 250 2.1.0 Ok\r\n
+(tout s'est bien passé)
+
+Client :
+RCPT TO:<etudiant@etu13.plateforme.lan>\r\n
+(sert à donner le destinataire du message)
+
+Serveur :
+Response: 250 2.1.0 Ok\r\n
+(tout s'est bien passé)
+
+Client :
+DATA
+(vide : manière de prévenir qu'on va envoyer le message)
+
+Serveur
+Response: 354 End data with <CR><LF>.<CR><LF>\r\n
+(Commence à envoyer le message, Fini avec la séquence donnée)
+
+Client :
+DATA Message-ID: <1570817199.9917.0.camel@etu13.plateforme.lan>
+
+puis, en Internet Message Format :
+
+#+BEGIN_QUOTE
+Message-ID: <1570817199.9917.0.camel@etu13.plateforme.lan>
+Subject: Test de hongrois
+From: etudiant sur la VM 3 <etudiant@etu13.plateforme.lan>, 1 item
+    Item: etudiant sur la VM 3 <etudiant@etu13.plateforme.lan>\r\n
+To: etudiant@etu13.plateforme.lan, 1 item
+Date: Fri, 11 Oct 2019 20:06:39 +0200
+Content-Type: text/plain; charset="UTF-8"
+X-Mailer: Evolution 3.22.6-1 
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Line-based text data: text/plain
+    \303\266sz\303\266n\303\266m\r\n
+#+END_QUOTE
+
+(aparté : L'encodage est en UTF-8 échappé, on avait écrit : öszömön (mercè !))
+
+Serveur :
+Response: 250 2.0.0 Ok: queued as 0BF681C03F9\r\n
+(Bien reçu, mis en queue, je l'envoie dès que je peux)
+
+Client :
+QUIT\r\n
+(Pour terminer la communication)
+
+Serveur :
+Response: 221 2.0.0 Bye\r\n
+(OK, bonne soirée)
+
+*** Question 2
+
+Quelles sont les contraintes imposées à la forme du courrier ?
+
+On ne peut envoyer que des caractères ASCII NVT.
+Les caractères UTF8 doivent être échappés (truc par défaut en 2019, on a l'air d'avoir laissé tombé les trucs du genre de Base64)
+
+En revanche, ça a l'air d'être tout : Le message peut être peuplé de champs qui permettront aux clients de rendre des "fausses" méta-données (dans le sens où elles font bel et bien partie des données.) Le champ sujet ou date, par exemple, est complètement facultatif : et modifiable directement par l'utilisateur, s'il décide de prendre la main sur son client.
+
+*** Question 3
+
+A aucun moment il n'a été demandé de mot de passe : il est possible de demander un mot de passe haché avec ESMTP.
+
+** Telnet
+
+*** Question 1
+
+Il suffit de suivre la séquence de commandes qu'Olivier Fourmaux a montré en cours.
+
+La séquence des opérations se passe plus ou moins de la même manière.
+
+*** Question 2
+
+Ca dépend ce que je veux capturer : dans notre cas, on veut du trafic SMTP.
+
+** HTTP
+
+Connexion via HTTP non disponible.
+
+** Réception via POP
+
+*** Question 1
+
+Les commandes successivement produites sont :
+
+CAPA
+USER <login>
+PASS <password>
+LIST
+UIDL
+QUIT
+
+(on a l'air d'avoir une erreur à USER, regarder les trames modèles)
 
 * Annexes
 
