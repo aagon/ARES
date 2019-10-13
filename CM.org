@@ -397,36 +397,54 @@ Streaming HTTP dynamique :
 
 C'est au client de savoir ce qu'il veut (bonne qualité, écran, internet, etc...)
 
-[Schéma]
+[[./CM2/decoupagemultichunk.jpg][Découpage multi-chunk]]
 
-On va pouvoir utiliser la notion de cache : les vidéos sont découpées. CDN : Réseau de distribution, de duplication des donées
+On va pouvoir utiliser la notion de cache : les vidéos sont découpées. CDN : Réseau de distribution, de duplication des données.
 
-[Schéma CDN]
+[[./CM2/CDN.jpg][CDN pour HTTP streaming]]
 
 **** Exemple Apple HTTP Live Streaming
 
-[Schéma]
+[[./CM2/AppleHLS.jpg][Apple HTTP Live Streaming]]
+
+Le fichier mezzanine est le fichier de qualité production : il est encodé en différentes qualités, puis chacune des qualités est segmentée en segments de 10 secondes : un fichier de master playlist est créé.
+
+Le principe de récupération est le suivant :
+On fait un HTTP GET pour récupérer la master playlist, puis on demande les morceaux les uns à la suite des autres, selon le niveau de qualité qu'on souhaite.
 
 **** Exemple Microsoft Smooth Streaming
 
-**** Exemple Adobe Flash Dynamic Streaming
+[[./CM2/MicrosoftSmoothStreaming.jpg][Microsoft Smooth Streaming]]
+
+Le client récupère le fichier manifest (ici le fichier ISMC en haut à droite de l'image), et fait des HTTP GET sur les différents fragments.
+
+**** Exemple Adobe HTTP Dynamic Streaming
+
+[[./CM2/AdobeHDS.jpg][Adobe HTTP Dynamic Streaming]]
+
+Là encore, on récupère le fichier manifest, puis on fait des HTTP GET sur les différents fragments.
 
 **** Exemple de DASH
 
-DASH n'est pas un protocole, ni un encodeur.
+[[./CM2/DASH.jpg][DASH]]
 
-Rien de standardisé sinon les données après mise en forme, et l'annonce de ces données (le fichier manifest).
-Les clients sont libres : tout le monde sait coment 
-
-
-MPD (manifest) est un gros fichier xml, structure :
-
-[Schéma]
-
-
-Côté client
+Côté client :
 
 On télécharge le MPD, et on choisit de manière dynamique (ou manuelle) en fonction de l'accès au réseau, de la vitesse de récupération constatée.
+
+DASH n'est pas un protocole, ni un encodeur. Rien de standardisé sinon les données après mise en forme, et l'annonce de ces données (le fichier manifest) : sur le dessin, seul le rectangle MPD et les rectangles "Per-bitrate media segment file" sont spécifiés.
+
+Les clients sont libres : tout le monde sait comment écrire un client, puisque tout le monde a accès à la manière dont les données sont stockées et annoncées.
+
+MPD (manifest) est un gros fichier xml, dont la structure ressemble à ça :
+
+[[./CM2/MPDStructure.jpg][Structure d'un fichier MPD]]
+
+Tout ça c'est du XML. Un client va consister en un parser et un générateur de requête HTTP, très très simple.
+
+On peut éventuellement envisager, si on veut vraiment bien faire les choses, un client DASH capable d'adapter les requêtes HTTP qu'il fait selon les performances de la vidéo, le support matériel, etc... de manière dynamique au cours de la vidéo :
+
+[[./CM2/MPDClient.jpg][Requêtes dynamiques]]
 
 ** Applications de support
 
@@ -443,8 +461,6 @@ Aucun mécanisme ne permet de remonter vers un serveur.
 **** Sécurité
 
 DNSSEC
-
-
 
 *** Administration réseau
 
