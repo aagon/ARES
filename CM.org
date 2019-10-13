@@ -233,7 +233,7 @@ Ce qu'il a été besoin de mettre en place pour que les autres applications fonc
 
 * Cours 3 : 30/09/2019
 
-** Applications de support (suite)
+** Applications principales (suite)
 
 *** La messagerie électronique
 
@@ -378,6 +378,99 @@ Décalage dans le temps entre le départ et l'arrivée : si on veut pouvoir la c
 *** Contrôle de tous ces flux
 
 Principalement hors-bande, plusieurs protocoles, spécifiques à la vidéo, à la téléphonie, etc...
+
+
+* Cours 4 : 07/10/2019
+
+** Applications principales (suite)
+
+*** Vidéo
+
+Après la fin de flash, on a de plus en plus de plateformes.
+
+Les contenus demandés par les clients sont aussi variés : il faut d'adapter aux spécificités du client et aux accès réseau.
+
+- Il faut encoder à plein de niveaux de qualité, et découper la vidéo
+- Encapsulation dans du HTTP : peut passer partout, mais surcharge d'en-tête ()
+
+Streaming HTTP dynamique :
+
+C'est au client de savoir ce qu'il veut (bonne qualité, écran, internet, etc...)
+
+[Schéma]
+
+On va pouvoir utiliser la notion de cache : les vidéos sont découpées. CDN : Réseau de distribution, de duplication des donées
+
+[Schéma CDN]
+
+**** Exemple Apple HTTP Live Streaming
+
+[Schéma]
+
+**** Exemple Microsoft Smooth Streaming
+
+**** Exemple Adobe Flash Dynamic Streaming
+
+**** Exemple de DASH
+
+DASH n'est pas un protocole, ni un encodeur.
+
+Rien de standardisé sinon les données après mise en forme, et l'annonce de ces données (le fichier manifest).
+Les clients sont libres : tout le monde sait coment 
+
+
+MPD (manifest) est un gros fichier xml, structure :
+
+[Schéma]
+
+
+Côté client
+
+On télécharge le MPD, et on choisit de manière dynamique (ou manuelle) en fonction de l'accès au réseau, de la vitesse de récupération constatée.
+
+** Applications de support
+
+*** DNS (Support)
+
+Il est bien sûr possible d'accéder directement à une machine si on connaît son adresse.
+
+Eventuellement, on voudrait pouvoir donner des noms aux machines.
+
+
+
+Aucun mécanisme ne permet de remonter vers un serveur.
+
+**** Sécurité
+
+DNSSEC
+
+
+
+*** Administration réseau
+
+Gestion des gros réseaux.
+
+Besoins :
+- Surveillances du réseau, pour la détection de panne, mesure de performance.
+- Intervention à distance
+
+Contraintes :
+- Hétérogénéité des machines (imprimantes, routeurs, etc...)
+
+Agent spécifique à chaque équipement.
+Par contre, le protocole de communication entre ces agents.
+
+On se sert d'un protocole SNMP (associés éventuellement à des clients GUI)
+
+Ce protocole permet juste de lire ou écrire des variables : la richesse est dans la MIB (Management Information Base), (plus haut) on y met les informations et les actions qu'on veut. Le fabricant du matériel met ce qu'il veut, en suivant les contraintes du standard.
+
+*** Capture de trafic
+
+Ce qu'on fait en LAB. Récupérer des statistiques et même du trafic
+
+La capture du trafic passe par SNMP.
+
+Le MIB d'un nouvel appareil (imprimante, switch) n'est pas forcément publié : ça dépend du bon vouloir du fabricant. Vu qu'on peut lire le trafic en clair, on peut tenter de reverse engineer le MIB. Nagios (administrateur open-source) doit avoir reçu des contributions de cette manière-là.
 
 
 * Annexes
