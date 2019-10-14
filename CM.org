@@ -489,6 +489,52 @@ La capture du trafic passe par SNMP.
 Le MIB d'un nouvel appareil (imprimante, switch) n'est pas forcément publié : ça dépend du bon vouloir du fabricant. Vu qu'on peut lire le trafic en clair, on peut tenter de reverse engineer le MIB. Nagios (administrateur open-source) doit avoir reçu des contributions de cette manière-là.
 
 
+* Cours 5 : 14/10/2019
+
+** Couche transport, service de base
+
+UDP : minimum vital
+TCP : permet la connexion active, et le contrôle de congestion
+
+*** Couche transport
+
+Abstraction de la topologie du réseau : on raisonne de bout en bout.
+
+La couche transport est intégrée dans le système d'exploitation (dans le noyau).
+
+La couche applicative doit être intégrée dans le programme utilisateur.
+
+
+UDP est une connexion sans état : tout ce qu'on sait, c'est l'adresse du destinataire.
+Transmissions non ordonnées, non fiables (service best effort, simple léger)
+
+TCP ajoute la fiabilité et ordonnancement, et le contrôle de congestion.
+
+(autres protocoles moins utilisés)
+
+Les deux grands modèles sont fondamentalement le mode message non-connecté et le mode connecté.
+
+Au niveau système et applicatif, on dispose d'un certain nombre de primitives :
+- LISTEN (écoute pour établissement de connection)
+- SEND
+- RECEIVE
+
+*** Multiplexage
+
+Le multiplexage, c'est l'idée qu'on peut regrouper les données demandées par les différents processus d'une même machine.
+
+On doit retrouver le processus distant auquel on veut envoyer le message ou établir la connexion.
+
+Numéro de port permet cette identification.
+
+** Couche transport, service fiable
+
+*** Principe de transfert de données fiables
+
+*** TCP
+
+
+
 * Annexes
 
 Supports de cours :
