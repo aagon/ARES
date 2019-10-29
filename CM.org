@@ -39,6 +39,8 @@ Examens répartis (pas de règle du max, moyenne)
 
 Rattrapage non-autorisé si note supérieure à 10.
 
+Examen a lieu le vendredi 8 novembre. Tout sur applicatif et transport
+
 ** Supports
 
 Documents et supports de cours sont sur la page perso.
@@ -533,6 +535,20 @@ Numéro de port permet cette identification.
 
 *** TCP
 
+
+
+* Cours 6 : 21/10/2019
+
+** Couche transport, suite
+
+Delayed ack (ack tous les deux paquets, ou au bout de 500ms)
+
+Analyse de l'en-tête TCP.
+
+RTO = retransmission timeout
+RTT = Round Trip Time
+
+Taille de fenêtre ?
 
 
 * Annexes
