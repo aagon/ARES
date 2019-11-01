@@ -450,19 +450,124 @@ On peut éventuellement envisager, si on veut vraiment bien faire les choses, un
 
 ** Applications de support
 
-*** DNS (Support)
+*** DNS (Annuaire)
 
-Il est bien sûr possible d'accéder directement à une machine si on connaît son adresse.
+On peut bien entendu accéder directement à une machine connectée au réseau internet si on connaît son adresse dans le protocole internet.
 
 Eventuellement, on voudrait pouvoir donner des noms aux machines.
 
+Problème qui devient de plus en plus compliqué avec la multiplication des machines connectées : autant au tout début, on pouvait se contenter d'avoir un fichier texte sur sa machine qui lie les adresses IP aux noms (on en a d'ailleurs encore un dans les machines UNIX modernes, le fichier /etc/hosts), autant on n'a plus la place et la bande passante pour stocker et mettre à jour en temps réel ce fichier.
 
+Initialement, il y avait sur un serveur spécifique un fichier de ce genre /etc/hosts, que les clients venaient requérir pour mettre à jour leur annuaire perso. Sa gestions était centralisée par un NIC (Network Information Center).
 
-Aucun mécanisme ne permet de remonter vers un serveur.
+On a depuis, à la suite de l'explosion des machines connectées, on a distribué la base de données selon un espace de nommage hiérarchique :
+
+nom.nom.nom.nom (le dernier nom est le plus important, et dispose d'un ensemble de sous-noms, etc...)
+Le nommage, et la hiérarchie du nommage n'est pas nécessairement déterminée par la topologie physique.
+
+Cette base de données distribuée est contrôlée par l'ICANN (Internet Corporation for Assigned Names and Numbers), qui délègue le contrôle à de nombreux délégués. La hiérarchie de la délégation suit de près la hiérarchie du nommage.
+
+Cet ensemble de serveurs de noms dédiés constituent le DNS, le Domain Name System. Ces serveurs gèrent les requêtes DNS de tout le monde.
+
+Les requêtes arrivent sur la couche transport TCP ou UDP, sur le port 53.
+
+On peut accéder aux serveurs DNS via des utilitaires UNIX directement dans le système :
+gethostbyname(3)
+gethostbyaddr(3)
+
+Ces API en C de bas niveau sont accessibles via des commandes shell comme getent(1) ou host(1).
+
+**** Le nommage
+
+Comme on l'a dit, le nommage est hiérarchique, suit à peu près la logique du système de fichier UNIX.
+
+Le label d'un noeud fait 63 caractères maximum, (parmi les caractères alphanumériques, et -), et est insensible à la casse.
+
+Le nom de domaine est constitué de la liste des labels en parcourant l'arbre vers la racine :
+
+nom1.nom2.nom3
+
+Dans cet exemple, la racine est nom3.
+
+La taille totale du nom de domaine est de 255 caractères, sans compter les '.' qui séparent les labels.
+
+Un nom de domaine est soit absolu (Fully Qualified Domain Name), c'est-à-dire que sa racine est dans les domaines de premier niveau (soit générique, style .com ou .gov, soit générique, genre .fr ou .su), auquel cas son nom est géré par le système DNS, soit il est relatif à un domaine plus haut, auquel cas il est géré localement par l'hôte.
+
+Par "domaine de premier niveau", on entend la même chose que l'anglais "Top level domain" (TLD), qui se distinguent entre ccTLD (country code top level domain) et gTLD (generic top level domain).
+
+Historiquement, l'ICANN est assez conservatrice dans l'attribution des noms de domaine de premier niveau (longtemps réservé aux états souverains et aux tld historiques). En 2012, environ 2000 nouveaux TLD ont été autorisés.
+
+La résolution DNS est donc, à la question "pc24.cs.keio.ac.jp", la réponse 198.237.57.24.
+
+La résolution inverse est aussi possible.
+
+Elle se fait via un sous-arbre un peu spécifique, le sous-arbre arpa, qui dispose lui-même des sous-arbres ip6 (pour les adresses IPv6), in-addr (pour les adresses IPv4). Si on veut obtenir le nom de domaine 198.237.57.24, on va en fait query le pseudo-nom de domaine 24.57.237.198.in-addr.arpa (en effet, la convention selon laquelle on lit l'arbre vers la racine reste valable).
+
+**** Zones
+
+ICANN se contente de gérer la racine, les TLD sont délégués à des domain name registries, probablement administré par les états souverains dans le cas des ccTLD, et une corporation random pour les gTLD.
+
+On a en fait des zones (qui sont en fait les sous-arbres de l'arbre DNS total) administrées séparément.
+
+Un serveur de nom est associé à chaque zone.
+
+Zone et domaine ne sont pas la même chose : la zone est définie principalement par le serveur de nom. Un serveur de nom va gérer tous les noms de la zone.
+
+Le domaine est beaucoup plus lâche : c'est simplement l'ensemble des machines dont l'adresse termine par le FQDN du domaine, indépendemment du ou des serveurs de nom qui administrent les noms.
+
+**** Les serveurs de nom
+
+On distingue deux types de serveurs de noms :
+
+- Les serveurs de référence d'une zone, qui se distinguent en un serveur de référence primaire, qui dispose des informations de référence, qui connaît les descendants auxquels il a délégué, et dont l'initialisation est locale (il ne prend ses informations nulle part ailleurs qu'en lui-même), et en serveur de référence secondaires, qui servent de redondance au premier, et qui s'initialisent et se mettent à jour à partir du primaire.
+- Les serveurs locaux (principalement mis en place par les fournisseurs d'accès), qui cachent une partie des correspondances, en prenant leurs informations auprès des serveurs de référence.
+
+La résolution et top-down et itérative. On ne demande à chaque fois que la référence du DNS de la sous-zone, jusqu'à résoudre complètement le nom.
+
+**** Requête itérative
+
+[[./CM2/DNSiteratif.jpg][Fonctionnement du DNS itératif]]
+
+- Ma machine locale cherche à résoudre pc24.cs.keio.ac.jp
+- Je demande à mon serveur DNS local pc24.cs.keio.ac.jp ?
+- Mon serveur DNS local demande au serveur DNS racine pc24.cs.keio.ac.jp ?
+- Le serveur racine répond jp. correspond à la plage d'adresse (avec le serveur DNS en premier) addr1, addr2, ...
+- Mon serveur DNS local demande donc pc24.cs.keio.ac.jp au serveur DNS de jp.
+- Le serveur DNS de jp. me répond que ac.jp. correspond à la plage d'adresses ... (avec le serveur 
+DNS correspondant en premier)
+
+etc...
+
+Dès qu'un serveur peut fournir la résolution complète à mon serveur DNS local, il l'envoie, à mon serveur qui me la rend.
+
+En fait, mon serveur DNS local est un peu mon mandataire : c'est lui qui pose les questions pour moi. Et les mêmes bénéfices que le mandataire HTTP sont là. Si on est plein à lui poser la même question, il va cacher la réponse et la fournir sans avoir besoin de reposer la question à chaque fois.
+
+**** Requête récursive
+
+[[./CM2/DNSrecursif.jpg][Fonctionnement du DNS récursif]]
+
+- Ma machine locale cherche à résoudre pc24.cs.keio.ac.jp
+- Je demande à mon serveur DNS local pc24.cs.keio.ac.jp ?
+- Mon serveur DNS local forward ma demande à un autre serveur DNS, jusqu'à qu'on arrive à un serveur DNS qui connaisse un serveur de nom qui puisse le renseigner. Ensuite, on repasse sur un système itératif jusqu'à résolution complète.
+- La réponse est repassé dans l'autre sens, jusqu'à parvenir à ma machine locale.
+
+**** Charge et cache
+
+Les racines sont consultées systématiquement.
+
+Pour que les charges soient supportables pour les serveurs DNS racine, les informations qui en sont tirées sont cachées par les autres serveurs DNS.
+
+**** Format d'un message DNS
+
+On ne s'intéressera pas à la structure d'un message DNS, Olivier Fourmaux fournissant gentiment la structure des messages de la couche transport et de la couche application en annexes des sujets d'examen.
 
 **** Sécurité
 
-DNSSEC
+Il n'y a pas de sécurité dans le protocole de base.
+
+Il est donc possible de d'intercepter, modifier des messages DNS, de créer des faux messages, de détruire des message qui ont trait à une adresse particulière (déni d'existence).
+
+Une extension du système DNS, plus tardive, DNSSEC, permet d'authentifier l'origine des données, de vérifier l'intégrité des données, mais ne garantit pas la confidentialité, et ne protège pas du déni de service distribué.
 
 *** Administration réseau
 
@@ -482,9 +587,9 @@ On se sert d'un protocole SNMP (associés éventuellement à des clients GUI)
 
 Ce protocole permet juste de lire ou écrire des variables : la richesse est dans la MIB (Management Information Base), (plus haut) on y met les informations et les actions qu'on veut. Le fabricant du matériel met ce qu'il veut, en suivant les contraintes du standard.
 
-*** Capture de trafic
+**** Capture de trafic
 
-Ce qu'on fait en LAB. Récupérer des statistiques et même du trafic
+Ce qu'on fait en LAB. Récupérer des statistiques et même du trafic directement.
 
 La capture du trafic passe par SNMP.
 
@@ -495,46 +600,278 @@ Le MIB d'un nouvel appareil (imprimante, switch) n'est pas forcément publié : 
 
 ** Couche transport, service de base
 
-UDP : minimum vital
-TCP : permet la connexion active, et le contrôle de congestion
-
 *** Couche transport
 
-Abstraction de la topologie du réseau : on raisonne de bout en bout.
+La couche transport se trouve, dans le modèle TCP/IP (on ignorera le modèle OSI), entre la couche applicative, plus haut, et la couche internet, plus bas.
 
-La couche transport est intégrée dans le système d'exploitation (dans le noyau).
+La couche transport permet de faire communiquer deux ou plusieurs entités en faisant abstraction des éléments de réseau traversés.
 
-La couche applicative doit être intégrée dans le programme utilisateur.
+La couche transport donne une association virtuelle entre processus : point de vue UNIX. La socket UNIX se contente de créer un outil de communication entre deux processus, *indépendemment de la localisation de ces processus* (c'est aussi le cas des autres IPC, dans une moindre mesure)
 
+Les communications se font de bout en bout : on ne s'occupe pas des éventuels relais traversés. La couche transport est implémentée dans les machines d'extrémité, directement au niveau du système (alors que les protocoles applicatifs étaient dans les faits définis dans l'espace utilisateur) : le client et le serveur ont une pile TCP et une pile UDP, le routeur pas nécessairement.
+
+*** Protocoles de transport
 
 UDP est une connexion sans état : tout ce qu'on sait, c'est l'adresse du destinataire.
 Transmissions non ordonnées, non fiables (service best effort, simple léger)
 
-TCP ajoute la fiabilité et ordonnancement, et le contrôle de congestion.
+Par rapport à ce minimum syndical, TCP ajoute la fiabilité et ordonnancement, et le contrôle de congestion. Ce mode est orienté flux de données (plutôt que message).
 
-(autres protocoles moins utilisés)
+On a aussi d'autres protocoles de transport beaucoup moins utilisés : un mode fiable orienté message (qui emprunte à TCP la fiabilité mais à UDP le mode message non connecté) : SCTP et QUIC
+
+Et aussi un protocole qui prend à TCP le contrôle de congestion, mais qui reste sur un mode de transmission non connecté, non fiable, non ordonné : DCCP
+
+
+Quel que soit le protocole qu'on considère, ne sont jamais disponibles :
+- Des garanties temporelles (délais non-déterministes, gigue imprédictible)
+- Des garanties de débit
+
+En conséquence de ça, aucune garantie de temps réel sur les protocoles de transport.
+
+#+BEGIN_DEFINITION
+La *gigue* (en anglais jitter) est la différence de délai de transmission de bout en bout entre des paquets choisis dans un même flux de paquets, sans prendre en compte les paquets éventuellement perdus.
+#+END_DEFINITION
 
 Les deux grands modèles sont fondamentalement le mode message non-connecté et le mode connecté.
 
 Au niveau système et applicatif, on dispose d'un certain nombre de primitives :
-- LISTEN (écoute pour établissement de connection)
-- SEND
-- RECEIVE
+- LISTEN (écoute pour établissement de connexion, côté serveur)
+- CONNECT (établissement de connexion par le client)
+- SEND (envoi de paquet en mode connecté ou non, par n'importe qui)
+- RECEIVE (réception de paquet en mode connecté ou non, par n'importe qui)
+- DISCONNECT (rupture de connexion établie)
+
+De la même manière qu'on a un automate d'état des processus UNIX, on peut avoir un automate d'état des connexions.
+
+L'établissement de connexion passe par un système de réponse attendue.
+
+En gros, la demande de connexion a une valeur bien précise dans son champ SYN (on prend la terminologie spécifique à TCP à dessein). La réponse doit avoir dans son champ ACK la même valeur, et cette réponse demande à son tour via son propre champ SYN une valeur.
+
+Cette méthode est robuste en la persistance de vieux duplicats dans le sens où les réponses à ceux-ci peuvent être identifiés et rejetés facilement. En revanche, ça peut amener une rupture de la connexion. Donc robustesse en terme d'authentification, mais fragilité en terme de persistance.
 
 *** Multiplexage
 
-Le multiplexage, c'est l'idée qu'on peut regrouper les données demandées par les différents processus d'une même machine.
+Au niveau applicatif, les données sont transmises de processus à processus via des sockets.
 
-On doit retrouver le processus distant auquel on veut envoyer le message ou établir la connexion.
+Les sockets sont réputés imperméables : on met un truc dans un socket, il doit ressortir tel quel de l'autre côté, et nulle part ailleurs.
 
-Numéro de port permet cette identification.
+Mais de fait, si on a plusieurs sockets qui vont tous de la machine A à la machine B, il serait bête de ne pas profiter de la même connexion.
+
+Notion de *multiplexage*, qui consiste à bien regrouper ces données. Au niveau de l'émetteur, on doit collecter les données auprès des sockets, les identifier par un en-tête. Au niveau du récepteur, on sépare les blocs et on les fournit au socket correspondant.
+
+En mode non connecté, on associe le socket à un numéro de port. Quand un hôte reçoit le datagramme, il se contente de vérifier le numéro de port, et il envoie le datagramme au socket correspondant.
+
+En mode connecté, le socket est identifié par l'adresse et le port de la source, l'adresse et le port de destination. Lors de la réception d'un segment, on peut identifier le socket auquel l'envoyer en regardant le quadruplet. De cette manière, un serveur qui accepte des connexions en mode connecté peut avoir un très grand nombre de connexions.
+
+*** Le protocole UDP et le service minimum
+
+Le protocole UDP (User Datagram Protocol) est le protocole internet le plus minimaliste. Il consiste seulement à coller une adresse IP et un port à un paquet de données, et à le balancer sur le réseau (on exagère à peine).
+
+Les datagrammes peuvent parfaitement être perdus, dupliqués ou être reçus de manière désordonnée.
+
+Pas d'échange préalable à l'envoi des paquets. L'envoi ne dépend pas de l'état des extrémités.
+
+Chaque datagramme vit sa vie, il est géré indépendemment des autres.
+
+La structure est la suivante :
+- Le port source sur deux octets (2^16 valeurs possibles, soient 65536)
+- Le port destination sur deux octets (pareil)
+- La taille en octets du datagramme, ce qui donne une taille maximale de 65536 octets
+- Une somme de contrôle sur deux octets, donc +assez+ très très sensible aux collisions.
+
+Puis ensuite le message, soient les données de la couche applicative.
+
+Les ports sources inférieurs à 1024 sont en général les ports réservés à l'administrateur, et c'est sur ces ports là que les protocoles applicatifs usuels (qui ont un RFC) sont *habituellement* utilisés (rien n'empêche qu'ils soient utilisés ailleurs).
+
+Les ports au-dessus de 1024 compris sont accessibles aux utilisateurs, mais sont en général bloqués par les pare-feu.
+
+
+Les avantages de ce protocole extrêmement minimaliste :
+- Protocole sans état
+- Pas besoin d'établir une connexion
+- Entête réduit, bonne efficacité
+
+Convient particulièrement aux situations avec des ressources limitées aux extrémités, tant en terme de pile TCP/IP (plus complexe à coder, mais de nos jours implémenté dans tous les systèmes UNIX) que de capacité de traitement.
+
+Si on a besoin de nouvelles fonctionnalités, il faut les implémenter dans la couche application.
+
+Les applications qui utilisent UDP sont, parmi les applications classiques :
+- La résolution de noms (DNS)
+- L'administration réseau (SNMP)
+- L'horloge (NTP)
+- Les serveurs de fichiers distants (NFS)
+
+Dans ces cas-là, la fiabilisation des échanges, quand elle est nécessaire, peut se faire par redondance temporelle ou explicitement dans la couche application.
+
+En général, les applications qui ont tendance à utiliser UDP sont les applications qui ont de forte contraintes de débit et/ou de latence, tout en étant tolérants aux pertes, celles-ci pouvant être résorbées au niveau applicatif. Donc typiquement, les jeux vidéo en ligne, le streaming audio et vidéo, la voix par internet, etc...
 
 ** Couche transport, service fiable
 
 *** Principe de transfert de données fiables
 
+Le but de cette partie est de donner les conditions de possibilité d'un protocole de transport fiable (PTF dans la suite et dans le support) dans des environnement matériels supposés non-fiables.
+
+C'est ce qu'Olivier Fourmaux entend quand il écrit :
+
+#+BEGIN_QUOTE
+Les caractéristiques du canal non fiable déterminent la complexité du protocole de transfert fiable.
+#+END_QUOTE
+
+Il faut s'assurer, dans la couche transport, d'un certain nombre de choses si on veut pouvoir garantir à la couche applicative la fiabilité des transmissions dans un canal non fiable.
+
+Construisons ensemble les caractéristiques du PTF.
+
+Avant toute chose, il est question de transfert de données dans un seul sens dans un premier temps (les informations de contrôle peuvent aller dans les deux directions).
+
+En quoi est-ce que la canal sous-jacent peut-il se révéler non-fiable ?
+
+**** Erreurs
+
+Certains bits peuvent être modifiés pendant le transport : on va donc devoir ajouter un contrôle d'erreur.
+
+Il faut que l'envoyeur puisse récupérer les erreurs que le récepteur a levé : système d'acquittement positif (ACK) ou négatif (NAK).
+
+Peu performant en soi : protocole stop and wait, l'émetteur attend la réponse du récepteur avant de continuer à transmettre.
+
+Si les ACK ou NAK sont incorrects, l'émetteur perd les informations sur l'état du récepteur, les données sont peut être inutilement dupliquées.
+
+L'émetteur est censé retransmettre le paquet courant si le ACK/NAK est incorrect.
+Les paquets sont assortis d'un numéro de séquence pour reconnaître les duplicats et les corrections.
+Le récepteur est donc capable de supprimer les duplicats.
+
+On peut se permettre de n'avoir que deux numéros de séquence possibles, vu qu'on part du principe qu'on doit juste distinguer un paquet du précédent et du suivant.
+
+Peut-on éliminer les NAK ?
+Si on remplace les NAK par le ACK du dernier paquet valide reçu, le récepteur peut inclure le numéro de séquence correspondant au ACK et donner à l'émetteur les mêmes informations que s'il avait envoyé NAK :
+si l'émetteur reçoit deux ACK avec le même numéro de séquence, il sait que le dernier paquet qu'il a envoyé est arrivé vérolé.
+
+**** Pertes
+
+On se place maintenant dans le cas théorique où on peut non seulement voir un certain nombre de bits du paquet modifiés, mais aussi des paquets purement et simplement perdus en route.
+
+L'absence d'un paquet ne déclenche pas de ACK, donc on est bloqué.
+
+Il faut introduire une notion de temporisation : on doit d'abord estimer un temps raisonnable de retour du ACK.
+
+On déclenche un chronomètre au départ d'un paquet. Si le ACK arrive avant le temps raisonnable, on est content, on arrête le chrono et on le reset. Si non, on retransmet.
+
+Dans le cas où le ACK finit vraiment par arriver, mais après le temps raisonnable, on a une duplication, qui est gérée et détruite grâce au numéro de séquence.
+
+On a maintenant ce que Olivier Fourmaux appelle PTF 3.0, qui gère les erreurs et les pertes.
+
+Mais ça n'est pas très efficace.
+
+**** Evaluation de l'efficacité
+
+On prend un gros débit : 1 Gb/s
+On part du principe que le délai de bout-en-bout est de 40ms, donc 80ms de délai d'aller-retour.
+
+Les paquets font 1000 octets.
+
+Le temps de la transmission se mesure en divisant la taille du paquet (en bits !) par le débit du lien. On tombe sur 8 ms.
+
+Si on définit l'efficacité de l'émetteur comme la fraction du temps qu'il passe effectivement à transmettre, on peut la calculer comme suit :
+
+Débit du lien / (Débit du lien + durée d'aller-retour), soit dans notre cas 1/10000.
+
+Le débit du transport, dans notre cas, est donné par la taille du paquet divisé par la durée d'aller-retour, soit 100 Kb/s
+
+Sur un paquet de 1000 octets, les performances du protocole de transport sont de 100 Kb/s pour un lien supportant 1 Gb/s.
+
+Bien entendu, ces performances dépendent de la taille du paquet. Plus celui-ci est gros, moins le coût de l'aller-retour est cher.
+
+Ces mauvaises performances viennent du caractère stop and wait du protocole : on ne peut envoyer un paquet que toutes les RTT temps.
+
+#+BEGIN_DEFINITION
+RTT (Round Trip Time) est simplement la valeur absolue de la différence entre la date d'envoi d'un paquet et la date de réception du ACK correspondant à ce paquet.
+#+END_DEFINITION
+
+**** Protocole pipeline
+
+La solution naturelle pour accélérer le traitement d'une suite de données, c'est de ne pas attendre qu'une donnée ait fini d'être traitée pour commencer le traitement de la suivante. Principe du pipeline.
+
+Dans notre cas, le pipeline consistera en l'autorisation de l'envoi de plusieurs paquets avant la réception des ACK. Donc on va avoir plusieurs paquets en attente d'acquittement.
+
+Ce qui implique immédiatement que la notation sur un bit simple du numéro de séquence ne tient plus.
+Implique aussi la mise en place, au niveau des machines d'extrémité, de tampons.
+
+On va voir deux types de protocole en pipeline (en fait un seul, mais avec deux variantes).
+
+
+Go-back-N :
+Les entêtes des paquets disposent de k bits de numéro de séquence.
+Dans la première variante, les acquittements envoyés à la réception sont cumulatifs : ACK prendra la forme ACK(n), et ACK(n) signifiera un acquittement de tous les paquets jusqu'au paquet portant le numéro de séquence n.
+
+Vu qu'on a potentiellement à un instant bien précis un nombre supérieur à 1 de paquets non acquittés, il faut quand même définir un nombre maximal de paquets non acquittés à la fois permis. (Sinon, l'émetteur peut se contenter de bombarder comme un bienheureux)
+
+On a donc un nouveau concept de *fenêtre* :
+
+#+BEGIN_DEFINITION
+Dans un protocole orienté connexion, on définit la fenêtre comme le nombre de paquets non-acquittés maximum permis.
+#+END_DEFINITION
+
+Du côté du récepteur, on envoie seulement des ACK avec le numéro de séquence le plus élevé des paquets valides *ordonnés*.
+
+Un ACK dupliqué signifie la mauvaise réception de paquet après le numéro de séquence du ACK.
+
+Du côté du récepteur, on peut se contenter de n'enregistrer que le numéro de séquence attendu du prochain paquet : les paquets déséquencés sont éliminés, ce qui élimine le besoin d'entretenir un tampon.
+
+
+Le problème de cette approche est qu'en cas d'erreur (et a fortiori de perte) sur un des paquets de la séquence, les paquets suivants doivent in fine être éliminés (et donc retransmis) quand bien même ils ont été quant à eux reçus tout à fait correctement.
+
+On gâche potentiellement énormément de trafic avec une simple erreur.
+
+Pour cette raison, il existe une deuxième variante de ce Go-back-N avec retransmissions sélectives.
+Le récepteur acquitte individuellement, et non plus cumulativement tous les paquets reçus correctement.
+
+De cette manière, on peut se permettre de n'avoir à retransmettre que le strict minimum, c'est-à-dire les paquets non acquittés.
+
+La fenêtre d'émission reste limitée à N numéros de séquence consécutifs (on est bien toujours dans le cas du go-back-N).
+
+Du côté de l'émetteur, on peut maintenant marquer individuellement la bonne réception des paquets dans l'intervalle [plus petit paquet non acquitté, plus petit paquet non acquitté + taille de la fenêtre].
+
+Si le paquet à acquitter est le plus petit non encore acquitté, on peut décaler la fenêtre vers la droite.
+
+Cette variante suppose en revanche un tampon du côté du récepteur :
+- on acquittera explicitement pour tous les paquets reçus dans l'intervalle [base - N ; base + N], avec N la taille de la fenêtre, et base le paquet de plus petit numéro de séquence correctement reçu.
+- Si, en particulier, le paquet est dans [base + 1 ; base + N], s'il est déséquencé (c.à.d qu'il n'est pas base + 1) on le met dans le tampon après avoir ACKé. S'il est séquencé, on décale la fenêtre jusqu'au plus petit paquet non reçu.
+- Si le paquet est dans [base - N ; base], on ACK simplement sans rien faire.
+
+Si le paquet n'est pas dans l'intervalle, on ne fait rien.
+
 *** TCP
 
+TCP est en fait l'exemple historique dominant du PTF qui respecte les caractéristiques qu'on a donné.
+
+Certains champs intéressants de la structure de l'en-tête :
+
+**** Le numéro de séquence
+
+le champ qui donne le numéro de la séquence est écrit sur 32 bits et il numérote exactement le premier octet des data : il est en fait associé à chaque octet et non pas à un segment.
+
+On a donc une numérotation implicite de tous les octets *de données* (les octets d'entête ne comptent pas).
+
+Vu que ce numéro de séquence est écrit sur 32 bits, on boucle obligatoirement au bout de 2^32 octets (4 Gio).
+
+Ce numéro de séquence permet très facilement de détecter les pertes et ordonnancer les segments.
+
+**** Le numéro d'acquittement
+
+Aussi écrit sur 32 bits.
+
+Indique le numéro du prochain octet *de données* attendu (donc le numéro de séquence du paquet "réponse", s'il y en a un).
+
+Vu qu'il est cumulatif, il donne toujours le premier octet non reçu, même si d'autres avec des numéros de séquence supérieurs ont bien été reçus et sont dans le tampon de réception.
+
+Un segment peut très bien à la fois porter des données et un acquittement de données précedemment reçu : principe du piggybacking.
+
+**** Taille de la fenêtre de réception
+
+Taille en octets de la fenêtre de réception
+
+Ecrits sur 16 bits, donc peut annoncer jusqu'à 64 Kio.
+
+Important pour le contrôle de flux : donne le nombre d'octets disponibles dans le tampon du récepteur, donc dimensionne la taille de la fenêtre d'anticipation de l'émetteur (combien de paquets il peut envoyer d'un coup).
 
 
 * Cours 6 : 21/10/2019
